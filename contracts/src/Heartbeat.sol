@@ -17,8 +17,11 @@ contract Heartbeat {
     mapping(address => bool) public isGuardian;
     mapping(address => uint256) public guardianIndex;
 
-    constructor() {
-        // msg.sender is the person who is currently connecting
+    uint256 public immutable interval;
+    uint256 public immutable gracePeriod;
+
+    constructor(uint256 _interval, uint256 _gracePeriod) {
+        // msg.sender is the person who is currently deploying
         // the contract, set that equal to owner
         owner = msg.sender;
 
@@ -28,6 +31,8 @@ contract Heartbeat {
         // over the course of minutes.
         // https://rareskills.io/learn-solidity/blockTimestamp-and-blockNumber
         lastCheckIn = block.timestamp;
+        interval = _interval;
+        gracePeriod = _gracePeriod;
     }
 
     function addGuardian(address guardian) public {
@@ -82,5 +87,13 @@ contract Heartbeat {
         isGuardian[guardian] = false;
         delete guardians[guardian];
         delete guardianIndex[guardian];
+    }
+
+    function isExpired() public view returns (bool) {
+        return block.timestamp > lastCheckIn + interval + gracePeriod;
+    }
+
+    function isOverdue() public view returns (bool) {
+        return block.timestamp > lastCheckIn + interval;
     }
 }

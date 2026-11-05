@@ -15,7 +15,7 @@ contract HeartbeatTest is Test {
     // Because this test contract deploys Heartbeat, this test contract
     // becomes the owner (msg.sender in Heartbeat's constructor).
     function setUp() public {
-        heartbeat = new Heartbeat();
+        heartbeat = new Heartbeat(60 seconds, 30 seconds);
     }
 
     // The deployer (this test contract) should be the owner
@@ -175,5 +175,23 @@ contract HeartbeatTest is Test {
         vm.expectRevert();
         vm.prank(strangerAddress);
         heartbeat.removeGuardian(asta);
+    }
+
+    // Right after deploying, no time has passed, so the switch is not expired
+    function testNotExpiredRightAfterDeploy() public {
+        assertEq(heartbeat.isExpired(), false);
+    }
+
+    // With no check-in, the switch expires once the interval and grace period pass
+    function testExpiredAfterIntervalAndGrace() public {
+        // Move time forward 1000 seconds, well past interval (60s) + grace (30s).
+        skip(1000);
+        assertEq(heartbeat.isExpired(), true);
+    }
+
+    // After the initial interval time period, test whether the grace period is active
+    function testOverdueAfterIntervalTimePeriod() public {
+        skip(70);
+        assertEq(heartbeat.isOverdue(), true);
     }
 }
