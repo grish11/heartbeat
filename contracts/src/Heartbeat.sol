@@ -13,9 +13,9 @@ contract Heartbeat {
     }
 
     address[] guardianList;
-    mapping(address => Guardian) guardians;
-    mapping(address => bool) isGuardian;
-    mapping(address => uint256) guardianIndex;
+    mapping(address => Guardian) public guardians;
+    mapping(address => bool) public isGuardian;
+    mapping(address => uint256) public guardianIndex;
 
     constructor() {
         // msg.sender is the person who is currently connecting
@@ -51,5 +51,9 @@ contract Heartbeat {
     function checkIn() public {
         require(msg.sender == owner, "Caller is not owner!");
         lastCheckIn = block.timestamp;
+    }
+
+    function getGuardianCount() public view returns (uint256) {
+        return guardianList.length;
     }
 }

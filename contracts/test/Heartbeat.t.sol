@@ -56,4 +56,44 @@ contract HeartbeatTest is Test {
         // The owner check in checkIn() rejects them, which is what we expect.
         heartbeat.checkIn();
     }
+
+    // The owner can add a guardian, and it's stored correctly
+    function testOwnerCanAddGuardian() public {
+        // Create a possible guardian --> Bob :3
+        address bobAddr = makeAddr("bob");
+
+        heartbeat.addGuardian(bobAddr);
+
+        // Bob is now marked as a guardian, and he's the only one
+        assertTrue(heartbeat.isGuardian(bobAddr));
+        assertEq(heartbeat.getGuardianCount(), 1);
+    }
+
+    // The same guardian can't be added twice
+    function testCannotAddSameGuardianTwice() public {
+        address bobAddr = makeAddr("bob");
+        heartbeat.addGuardian(bobAddr);
+
+        // Adding Bob again should fail, since he already exists
+        vm.expectRevert();
+        heartbeat.addGuardian(bobAddr);
+    }
+
+    // Someone who isn't the owner can't add guardians
+    function testStrangerCannotAddGuardian() public {
+        address strangerAddr = makeAddr("stranger");
+        address strangerFriendAddr = makeAddr("strangersFriend");
+
+        // The stranger tries to add their friend, which should fail
+        vm.expectRevert();
+        vm.prank(strangerAddr);
+        heartbeat.addGuardian(strangerFriendAddr);
+    }
+
+    // The owner can't be their own guardian
+    function testOwnerCannotBeGuardian() public {
+        // address(this) is the owner, since this test contract deployed Heartbeat
+        vm.expectRevert();
+        heartbeat.addGuardian(address(this));
+    }
 }
