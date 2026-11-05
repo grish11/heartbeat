@@ -96,4 +96,37 @@ contract HeartbeatTest is Test {
         vm.expectRevert();
         heartbeat.addGuardian(address(this));
     }
+
+    // Remove a guardian from the middle
+    function testRemoveGuardianFromMiddle() public {
+        // Add entries to the guardian list for testing
+        address ginko = makeAddr("ginko");
+        address asta = makeAddr("asta");
+        address bob = makeAddr("bob");
+        heartbeat.addGuardian(ginko);
+        heartbeat.addGuardian(asta);
+        heartbeat.addGuardian(bob);
+
+        // Remove asta form the guardianList
+        heartbeat.removeGuardian(asta);
+
+        // Check that the length decreased by 1
+        assertEq(getGuardianCount(), 2);
+
+        // Check that Asta is no longer a guardian
+        assertEq(heartbeat.isGuardian(asta));
+
+        // Make sure the values of Asta are back to the defaults ->
+        // this is because there are no Nil/None values in Sol
+        (bool hasVoted, uint256 whenAdded) = heartbeat.guardians(asta);
+        assertEq(hasVoted);
+        assertEq(whenAdded, 0);
+
+        // Make sure bob's position has been updated
+        assertEq(heartbeat.guardianList[1], bob);
+        assertEq(heartbeat.guardianIndex(bob), 1);
+    }
+    // Try removing from the end
+    // Try removing a non-guardian
+    // Try a stranger trying to remove a guardian
 }

@@ -56,4 +56,31 @@ contract Heartbeat {
     function getGuardianCount() public view returns (uint256) {
         return guardianList.length;
     }
+
+    function removeGuardian(address guardian) public {
+        require(msg.sender == owner, "Caller is not the owner!");
+        require(isGuardian[guardian], "Not a guardian!");
+
+        // Positions in the list
+        uint256 removedIndex = guardianIndex[guardian];
+        uint256 lastIndex = getGuardianCount() - 1;
+
+        // The guardian at the end of the list, who will fill the gap
+        address movedGuardian = guardianList[lastIndex];
+
+        // Swap: the removed guardian goes to the end, the last one fills the gap
+        guardianList[lastIndex] = guardian;
+        guardianList[removedIndex] = movedGuardian;
+
+        // Delete the last slot, which now holds the removed guardian
+        guardianList.pop();
+
+        // The moved guardian has a new position, so record it
+        guardianIndex[movedGuardian] = removedIndex;
+
+        // Clean up the removed guardian's records
+        isGuardian[guardian] = false;
+        delete guardians;
+        delete guardianIndex[guardian];
+    }
 }
