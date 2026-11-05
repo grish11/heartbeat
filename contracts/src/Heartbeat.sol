@@ -12,7 +12,7 @@ contract Heartbeat {
         uint256 whenAdded;
     }
 
-    address[] guardianList;
+    address[] public guardianList;
     mapping(address => Guardian) public guardians;
     mapping(address => bool) public isGuardian;
     mapping(address => uint256) public guardianIndex;
@@ -80,7 +80,7 @@ contract Heartbeat {
 
         // Clean up the removed guardian's records
         isGuardian[guardian] = false;
-        delete guardians;
+        delete guardians[guardian];
         delete guardianIndex[guardian];
     }
 }

@@ -111,22 +111,69 @@ contract HeartbeatTest is Test {
         heartbeat.removeGuardian(asta);
 
         // Check that the length decreased by 1
-        assertEq(getGuardianCount(), 2);
+        assertEq(heartbeat.getGuardianCount(), 2);
 
         // Check that Asta is no longer a guardian
-        assertEq(heartbeat.isGuardian(asta));
+        assertEq(heartbeat.isGuardian(asta), false);
 
         // Make sure the values of Asta are back to the defaults ->
         // this is because there are no Nil/None values in Sol
         (bool hasVoted, uint256 whenAdded) = heartbeat.guardians(asta);
-        assertEq(hasVoted);
+        assertEq(hasVoted, false);
         assertEq(whenAdded, 0);
 
         // Make sure bob's position has been updated
-        assertEq(heartbeat.guardianList[1], bob);
+        assertEq(heartbeat.guardianList(1), bob);
         assertEq(heartbeat.guardianIndex(bob), 1);
     }
-    // Try removing from the end
-    // Try removing a non-guardian
-    // Try a stranger trying to remove a guardian
+
+    // Remove a guardian from the end
+    function testRemoveGuardianFromEnd() public {
+        // Add entries to the guardian list for testing
+        address ginko = makeAddr("ginko");
+        address asta = makeAddr("asta");
+        address bob = makeAddr("bob");
+        heartbeat.addGuardian(ginko);
+        heartbeat.addGuardian(asta);
+        heartbeat.addGuardian(bob);
+
+        heartbeat.removeGuardian(bob);
+
+        // Check that the length decreased by 1
+        assertEq(heartbeat.getGuardianCount(), 2);
+
+        // Check that Bob is no longer a guardian
+        assertEq(heartbeat.isGuardian(bob), false);
+
+        // Make sure the values of Bob are back to the defaults ->
+        // this is because there are no Nil/None values in Sol
+        (bool hasVoted, uint256 whenAdded) = heartbeat.guardians(bob);
+        assertEq(hasVoted, false);
+        assertEq(whenAdded, 0);
+    }
+
+    // Remove a non-guardian
+    function testRemoveNonGuardian() public {
+        address light = makeAddr("light");
+        address l = makeAddr("l");
+        heartbeat.addGuardian(light);
+
+        // Expect the next result after expectRevert to not eval correctly
+        vm.expectRevert();
+        heartbeat.removeGuardian(l);
+    }
+
+    // Remove a guardian as a stranger (not owner!)
+    function testStrangerRemoveGuardian() public {
+        // Add entries to the guardian list for testing
+        address ginko = makeAddr("ginko");
+        address asta = makeAddr("asta");
+        heartbeat.addGuardian(ginko);
+        heartbeat.addGuardian(asta);
+
+        address strangerAddress = makeAddr("stranger");
+        vm.expectRevert();
+        vm.prank(strangerAddress);
+        heartbeat.removeGuardian(asta);
+    }
 }
