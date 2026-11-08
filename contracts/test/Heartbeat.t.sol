@@ -7,10 +7,25 @@ import {Heartbeat} from "../src/Heartbeat.sol";
 contract HeartbeatTest is Test {
     Heartbeat heartbeat;
 
+    // Some tests use these 3 test addreses, initialize them here
+    address ginko;
+    address asta;
+    address bob;
+
     // Fresh contract before every test: 60s interval, 30s grace period.
     // This test contract deploys it, so it's the owner.
     function setUp() public {
         heartbeat = new Heartbeat(60 seconds, 30 seconds);
+    }
+
+    // Some test functions use these, this is a helper function
+    function setupThreeGuardians() internal {
+        ginko = makeAddr("ginko");
+        asta = makeAddr("asta");
+        bob = makeAddr("bob");
+        heartbeat.addGuardian(ginko);
+        heartbeat.addGuardian(asta);
+        heartbeat.addGuardian(bob);
     }
 
     // ---------- Owner & check-in ----------
@@ -82,12 +97,7 @@ contract HeartbeatTest is Test {
 
     // Removing from the middle moves the last guardian into the gap
     function testRemoveGuardianFromMiddle() public {
-        address ginko = makeAddr("ginko");
-        address asta = makeAddr("asta");
-        address bob = makeAddr("bob");
-        heartbeat.addGuardian(ginko);
-        heartbeat.addGuardian(asta);
-        heartbeat.addGuardian(bob);
+        setupThreeGuardians();
 
         heartbeat.removeGuardian(asta);
 
@@ -106,12 +116,7 @@ contract HeartbeatTest is Test {
 
     // Removing the last guardian just pops them off
     function testRemoveGuardianFromEnd() public {
-        address ginko = makeAddr("ginko");
-        address asta = makeAddr("asta");
-        address bob = makeAddr("bob");
-        heartbeat.addGuardian(ginko);
-        heartbeat.addGuardian(asta);
-        heartbeat.addGuardian(bob);
+        setupThreeGuardians();
 
         heartbeat.removeGuardian(bob);
 
@@ -187,12 +192,7 @@ contract HeartbeatTest is Test {
 
     // 2 of 3 guardians vote after expiry, so the switch is released
     function testPossibleRelease() public {
-        address ginko = makeAddr("ginko");
-        address asta = makeAddr("asta");
-        address bob = makeAddr("bob");
-        heartbeat.addGuardian(ginko);
-        heartbeat.addGuardian(asta);
-        heartbeat.addGuardian(bob);
+        setupThreeGuardians();
 
         heartbeat.setVotesNeeded(2); // must be set before expiry
         skip(91);
