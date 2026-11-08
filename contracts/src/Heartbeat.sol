@@ -20,6 +20,16 @@ contract Heartbeat {
     uint256 public immutable interval;
     uint256 public immutable gracePeriod;
 
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Caller is not owner!");
+        _;
+    }
+
+    modifier notExpired() {
+        require(isExpired() == false, "Switch has expired!");
+        _;
+    }
+
     constructor(uint256 _interval, uint256 _gracePeriod) {
         // msg.sender is the person who is currently deploying
         // the contract, set that equal to owner
@@ -35,8 +45,7 @@ contract Heartbeat {
         gracePeriod = _gracePeriod;
     }
 
-    function addGuardian(address guardian) public {
-        require(msg.sender == owner, "Caller is not owner!");
+    function addGuardian(address guardian) public onlyOwner notExpired {
         require(isGuardian[guardian] == false, "Already a guardian!");
         require(owner != guardian, "Guardian cannot be owner!");
 
@@ -53,8 +62,7 @@ contract Heartbeat {
         isGuardian[guardian] = true;
     }
 
-    function checkIn() public {
-        require(msg.sender == owner, "Caller is not owner!");
+    function checkIn() public onlyOwner notExpired {
         lastCheckIn = block.timestamp;
     }
 
@@ -62,10 +70,8 @@ contract Heartbeat {
         return guardianList.length;
     }
 
-    function removeGuardian(address guardian) public {
-        require(msg.sender == owner, "Caller is not the owner!");
+    function removeGuardian(address guardian) public onlyOwner notExpired {
         require(isGuardian[guardian], "Not a guardian!");
-
         // Positions in the list
         uint256 removedIndex = guardianIndex[guardian];
         uint256 lastIndex = getGuardianCount() - 1;

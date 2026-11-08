@@ -31,12 +31,9 @@ contract HeartbeatTest is Test {
 
     // The owner checks in later, and lastCheckIn updates to the new time
     function testOwnerCanCheckIn() public {
-        // vm.warp SETS the clock to an exact time (it doesn't add).
-        // Time is seconds since Jan 1, 1970, so this means "it's now second 1000."
-        vm.warp(1000);
+        skip(50);
         heartbeat.checkIn();
-        // lastCheckIn should now be the time we warped to
-        assertEq(heartbeat.lastCheckIn(), 1000);
+        assertEq(heartbeat.lastCheckIn(), block.timestamp);
     }
 
     // Someone who isn't the owner must not be able to check in
@@ -178,7 +175,7 @@ contract HeartbeatTest is Test {
     }
 
     // Right after deploying, no time has passed, so the switch is not expired
-    function testNotExpiredRightAfterDeploy() public {
+    function testNotExpiredRightAfterDeploy() public view {
         assertEq(heartbeat.isExpired(), false);
     }
 
@@ -193,5 +190,23 @@ contract HeartbeatTest is Test {
     function testOverdueAfterIntervalTimePeriod() public {
         skip(70);
         assertEq(heartbeat.isOverdue(), true);
+    }
+
+    // After expiry, the owner can't check in or change guardians
+    function testOwnerLockedOutAfterExpiry() public {
+        address bob = makeAddr("bob");
+        heartbeat.addGuardian(bob);
+
+        // Past interval (60s) + grace (30s)
+        skip(91);
+
+        vm.expectRevert();
+        heartbeat.checkIn();
+
+        vm.expectRevert();
+        heartbeat.addGuardian(makeAddr("asta"));
+
+        vm.expectRevert();
+        heartbeat.removeGuardian(bob);
     }
 }
