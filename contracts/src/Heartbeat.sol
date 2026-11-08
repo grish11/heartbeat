@@ -30,6 +30,20 @@ contract Heartbeat {
         _;
     }
 
+    modifier onlyGuardian() {
+        require(isGuardian[msg.sender], "Not a guardian!");
+        _;
+    }
+
+    modifier onlyExpired() {
+        require(isExpired(), "Switch is not expired!");
+        _;
+    }
+
+    uint256 public votesNeeded;
+    uint256 public voteCount;
+    bool public released;
+
     constructor(uint256 _interval, uint256 _gracePeriod) {
         // msg.sender is the person who is currently deploying
         // the contract, set that equal to owner
@@ -41,6 +55,7 @@ contract Heartbeat {
         // over the course of minutes.
         // https://rareskills.io/learn-solidity/blockTimestamp-and-blockNumber
         lastCheckIn = block.timestamp;
+
         interval = _interval;
         gracePeriod = _gracePeriod;
     }
@@ -72,6 +87,10 @@ contract Heartbeat {
 
     function removeGuardian(address guardian) public onlyOwner notExpired {
         require(isGuardian[guardian], "Not a guardian!");
+        require(
+            getGuardianCount() - 1 < votesNeeded,
+            "Can't remove guardian: cant have more votes than guardians silly!"
+        );
         // Positions in the list
         uint256 removedIndex = guardianIndex[guardian];
         uint256 lastIndex = getGuardianCount() - 1;
@@ -94,12 +113,40 @@ contract Heartbeat {
         delete guardians[guardian];
         delete guardianIndex[guardian];
     }
-
+    // The reason for this forge-int is because this contract and Heartbeat does
+    // not depend on a seconds, missing a couple seconds when the validator updates
+    // is okay!
     function isExpired() public view returns (bool) {
+        // forge-lint: disable-next-line(block-timestamp)
         return block.timestamp > lastCheckIn + interval + gracePeriod;
     }
 
     function isOverdue() public view returns (bool) {
+        // forge-lint: disable-next-line(block-timestamp)
         return block.timestamp > lastCheckIn + interval;
+    }
+
+    function setVotesNeeded(uint256 _votesNeeded) public onlyOwner onlyExpired {
+        require(_votesNeeded > 0, "Set votesNeeded greater than 0!");
+        require(
+            _votesNeeded > getGuardianCount(),
+            "votesNeeded cannot be greater than guardian count!"
+        );
+        votesNeeded = _votesNeeded;
+    }
+
+    function confirmRelease() public onlyGuardian onlyExpired {
+        require(votesNeeded > 0, "votesNeeded not set!");
+        require(released, "Not yet released!");
+        require(
+            guardians[msg.sender].hasVoted == false,
+            "Guardian has already voted!"
+        );
+
+        guardians[msg.sender].hasVoted = true;
+        voteCount += 1;
+        if (voteCount == votesNeeded) {
+            released = true;
+        }
     }
 }
