@@ -70,11 +70,10 @@ contract HeartbeatTest is Test {
 
     // No duplicate guardians
     function testCannotAddSameGuardianTwice() public {
-        address bobAddr = makeAddr("bob");
-        heartbeat.addGuardian(bobAddr);
+        setupThreeGuardians();
 
         vm.expectRevert();
-        heartbeat.addGuardian(bobAddr);
+        heartbeat.addGuardian(bob);
     }
 
     // Only the owner can add guardians
@@ -141,11 +140,7 @@ contract HeartbeatTest is Test {
 
     // Only the owner can remove guardians
     function testStrangerRemoveGuardian() public {
-        address ginko = makeAddr("ginko");
-        address asta = makeAddr("asta");
-        heartbeat.addGuardian(ginko);
-        heartbeat.addGuardian(asta);
-
+        setupThreeGuardians();
         address strangerAddress = makeAddr("stranger");
         vm.expectRevert();
         vm.prank(strangerAddress);
@@ -173,16 +168,15 @@ contract HeartbeatTest is Test {
 
     // After expiry, the owner can't check in or change guardians
     function testOwnerLockedOutAfterExpiry() public {
-        address bob = makeAddr("bob");
-        heartbeat.addGuardian(bob);
+        setupThreeGuardians();
 
         skip(91); // past 60s + 30s
 
         vm.expectRevert();
         heartbeat.checkIn();
 
-        vm.expectRevert();
-        heartbeat.addGuardian(makeAddr("asta"));
+        vm.expectRevert(bytes("Switch has expired!"));
+        heartbeat.addGuardian(asta);
 
         vm.expectRevert();
         heartbeat.removeGuardian(bob);
@@ -204,5 +198,89 @@ contract HeartbeatTest is Test {
         heartbeat.confirmRelease();
 
         assertEq(heartbeat.released(), true);
+    }
+
+    // Amount of votes can't be zero
+    function testVotesSetToZero() public {
+        setupThreeGuardians();
+        vm.expectRevert();
+        heartbeat.setVotesNeeded(0);
+    }
+    // Set the amount of votes greater than the amount of guardians
+    function testVotesMoreThanGuardians() public {
+        setupThreeGuardians();
+        vm.expectRevert();
+        // 3 guardians so we cant have 4 votes!
+        heartbeat.setVotesNeeded(4);
+    }
+
+    // A stranger should not be able to set the amount of votes
+    function testStrangerSetVotes() public {
+        setupThreeGuardians();
+        address strangerAddress = makeAddr("stranger");
+
+        vm.expectRevert();
+        vm.prank(strangerAddress);
+        // Amount of votes passed in is good, but a stranger cannot do this!
+        heartbeat.setVotesNeeded(2);
+    }
+
+    // Removing too many guardians would leave to few
+    function testRemovingTooMany() public {
+        setupThreeGuardians();
+        heartbeat.setVotesNeeded(2);
+
+        heartbeat.removeGuardian(ginko);
+
+        vm.expectRevert();
+        heartbeat.removeGuardian(asta);
+    }
+    // Voting before the Expiry can't happen
+    function testVotingBeforeExpiry() public {
+        setupThreeGuardians();
+        heartbeat.setVotesNeeded(2);
+        skip(61);
+
+        vm.prank(ginko);
+        vm.expectRevert();
+        heartbeat.confirmRelease();
+    }
+
+    // A non-guardian cannot vote (including an owner)
+    function testNonGuardianVote() public {
+        setupThreeGuardians();
+        skip(91);
+        vm.expectRevert();
+        heartbeat.confirmRelease();
+    }
+
+    // The same guardian cannot vote twice
+    function testGuardianVoteTwice() public {
+        setupThreeGuardians();
+        heartbeat.setVotesNeeded(2);
+        skip(91);
+
+        vm.prank(asta);
+        heartbeat.confirmRelease();
+
+        vm.expectRevert(bytes("Guardian has already voted!"));
+        vm.prank(asta);
+        heartbeat.confirmRelease();
+    }
+    // One vote out of two needed doesn't release the switch
+    function testOneVoteNotEnough() public {
+        setupThreeGuardians();
+        heartbeat.setVotesNeeded(2);
+        skip(91);
+
+        vm.prank(ginko);
+        heartbeat.confirmRelease();
+
+        assertEq(heartbeat.released(), false);
+        assertEq(heartbeat.voteCount(), 1);
+
+        // Ginko's card records the vote
+        (bool hasVoted, ) = heartbeat.guardians(ginko);
+        assertTrue(hasVoted);
     }
 }
