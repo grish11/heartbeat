@@ -12,10 +12,20 @@ contract HeartbeatTest is Test {
     address asta;
     address bob;
 
+    bytes32 fingerprint;
+    string ipfsLink;
+
     // Fresh contract before every test: 60s interval, 30s grace period.
     // This test contract deploys it, so it's the owner.
     function setUp() public {
-        heartbeat = new Heartbeat(60 seconds, 30 seconds);
+        fingerprint = keccak256("test file");
+        ipfsLink = "faketestlink";
+        heartbeat = new Heartbeat(
+            60 seconds,
+            30 seconds,
+            fingerprint,
+            ipfsLink
+        );
     }
 
     // Some test functions use these, this is a helper function
@@ -282,5 +292,24 @@ contract HeartbeatTest is Test {
         // Ginko's card records the vote
         (bool hasVoted, ) = heartbeat.guardians(ginko);
         assertTrue(hasVoted);
+    }
+
+    // Checks to see if the fingerprint, link in the constructor match
+    // the fingerprint, link the test values passed in
+    function testReadFingerprintAndIPFSLink() public view {
+        assertEq(heartbeat.fingerprint(), fingerprint);
+        assertEq(heartbeat.ipfsLink(), ipfsLink);
+    }
+
+    // An empty fingerprint is rejected
+    function testEmptyFingerprintReverts() public {
+        vm.expectRevert();
+        new Heartbeat(60 seconds, 30 seconds, bytes32(0), ipfsLink);
+    }
+
+    // An empty IPFS link is rejected
+    function testEmptyLinkReverts() public {
+        vm.expectRevert();
+        new Heartbeat(60 seconds, 30 seconds, fingerprint, "");
     }
 }

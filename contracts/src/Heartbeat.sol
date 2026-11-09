@@ -13,6 +13,9 @@ contract Heartbeat {
     uint256 public immutable interval;
     uint256 public immutable gracePeriod;
 
+    bytes32 public immutable fingerprint;
+    string public ipfsLink;
+
     // ---------- Guardians ----------
 
     // One guardian's "card"
@@ -57,7 +60,14 @@ contract Heartbeat {
 
     // ---------- Constructor ----------
 
-    constructor(uint256 _interval, uint256 _gracePeriod) {
+    constructor(
+        uint256 _interval,
+        uint256 _gracePeriod,
+        bytes32 _fingerprint,
+        string memory _ipfsLink
+    ) {
+        require(_fingerprint != bytes32(0), "Fingeprint is empty/not set!");
+        require(bytes(_ipfsLink).length > 0, "IPFS link is empty!");
         // msg.sender is the person deploying the contract, so they become the owner
         owner = msg.sender;
 
@@ -68,6 +78,9 @@ contract Heartbeat {
 
         interval = _interval;
         gracePeriod = _gracePeriod;
+
+        fingerprint = _fingerprint;
+        ipfsLink = _ipfsLink;
     }
 
     // ---------- Owner: check-in ----------
