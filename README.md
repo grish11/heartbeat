@@ -8,11 +8,7 @@ the blockchain proves the file they recover is your untouched original.
 
 ## Demo
 
-<!-- PASTE THE VIDEO URL ON THE LINE BELOW, on its own, with no markdown around
-     it. Get it by opening any issue in this repo, dragging media/demo.mp4 into
-     the comment box, waiting for the upload, then copying the generated URL.
-     GitHub renders a bare CDN video URL as an inline player; it strips <video>
-     tags, so this is the only way. -->
+https://github.com/user-attachments/assets/ebe6356a-7f45-4d02-820c-1c5ac5a75e14
 
 ---
 
