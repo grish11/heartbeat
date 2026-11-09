@@ -8,11 +8,11 @@ the blockchain proves the file they recover is your untouched original.
 
 ## Demo
 
-[**Watch the demo**](media/demo.mp4) — creating a switch, letting it expire, guardians
-voting, and the file coming back verified.
-
-<!-- For an inline player: drag media/demo.mp4 into a GitHub issue comment, copy the
-     URL GitHub generates, and paste it here on its own line. -->
+<!-- PASTE THE VIDEO URL ON THE LINE BELOW, on its own, with no markdown around
+     it. Get it by opening any issue in this repo, dragging media/demo.mp4 into
+     the comment box, waiting for the upload, then copying the generated URL.
+     GitHub renders a bare CDN video URL as an inline player; it strips <video>
+     tags, so this is the only way. -->
 
 ---
 
@@ -40,23 +40,15 @@ agree.
 ## How it works
 
 ```mermaid
-flowchart TD
-    A[Pick a file] --> B[Browser encrypts it]
-    B --> C[Ciphertext to IPFS]
-    B --> D[Fingerprint = SHA-256]
-    B --> E[Key split: 2 of 3]
-    C --> F[Deploy contract]
-    D --> F
-    E --> G[One share per guardian]
-    F --> H{Checked in?}
-    H -->|yes| H
-    H -->|no| I[Grace period]
-    I -->|checks in| H
-    I -->|silent| J[Expired - owner locked out]
-    J --> K[Guardians vote]
-    K --> L[Released]
-    G --> M
-    L --> M[Combine shares, decrypt, verify]
+flowchart LR
+    A[Encrypt file<br/>in browser] --> B[Deploy switch<br/>fingerprint on-chain]
+    B --> C{Checked in<br/>on time?}
+    C -->|yes| C
+    C -->|no| D[Grace period]
+    D -->|checks in| C
+    D -->|still silent| E[Expired]
+    E --> F[Guardians vote]
+    F --> G[Unlock<br/>and verify]
 ```
 
 **Nothing secret leaves the browser.** The server never sees your file, your key,
