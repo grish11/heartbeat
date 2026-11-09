@@ -79,12 +79,7 @@ contract Heartbeat {
 
     // ---------- Constructor ----------
 
-    constructor(
-        uint256 _interval,
-        uint256 _gracePeriod,
-        bytes32 _fingerprint,
-        string memory _ipfsLink
-    ) {
+    constructor(uint256 _interval, uint256 _gracePeriod, bytes32 _fingerprint, string memory _ipfsLink) {
         require(_fingerprint != bytes32(0), "Fingerprint is empty/not set!");
         require(bytes(_ipfsLink).length > 0, "IPFS link is empty!");
         // msg.sender is the person deploying the contract, so they become the owner
@@ -132,8 +127,7 @@ contract Heartbeat {
     function removeGuardian(address guardian) public onlyOwner notExpired {
         require(isGuardian[guardian], "Not a guardian!");
         require(
-            getGuardianCount() - 1 >= votesNeeded,
-            "Can't remove guardian: cant have more votes than guardians silly!"
+            getGuardianCount() - 1 >= votesNeeded, "Can't remove guardian: cant have more votes than guardians silly!"
         );
 
         // Positions in the list
@@ -187,10 +181,7 @@ contract Heartbeat {
 
     function setVotesNeeded(uint256 _votesNeeded) public onlyOwner notExpired {
         require(_votesNeeded > 0, "Set votesNeeded greater than 0!");
-        require(
-            _votesNeeded <= getGuardianCount(),
-            "votesNeeded cannot be greater than guardian count!"
-        );
+        require(_votesNeeded <= getGuardianCount(), "votesNeeded cannot be greater than guardian count!");
         votesNeeded = _votesNeeded;
         emit VotesNeededSet(votesNeeded);
     }
@@ -198,10 +189,7 @@ contract Heartbeat {
     function confirmRelease() public onlyGuardian onlyExpired {
         require(votesNeeded > 0, "votesNeeded not set!");
         require(released == false, "Already released!");
-        require(
-            guardians[msg.sender].hasVoted == false,
-            "Guardian has already voted!"
-        );
+        require(guardians[msg.sender].hasVoted == false, "Guardian has already voted!");
 
         guardians[msg.sender].hasVoted = true;
         voteCount += 1;
