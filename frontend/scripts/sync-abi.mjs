@@ -17,8 +17,20 @@ const artifactPath = resolve(here, "../../contracts/out/Heartbeat.sol/Heartbeat.
 const outPath = resolve(here, "../lib/heartbeat.ts");
 
 if (!existsSync(artifactPath)) {
+  // lib/heartbeat.ts is committed precisely so a build does not need Foundry.
+  // On a deploy host (Vercel, CI) contracts/out/ is absent because it is
+  // gitignored — that is expected, not an error, as long as the generated
+  // file is already there.
+  if (existsSync(outPath)) {
+    console.log(
+      "sync-abi: no Foundry artifact (expected off a dev machine) — " +
+        "keeping the committed lib/heartbeat.ts.",
+    );
+    process.exit(0);
+  }
   console.error(
-    `\nsync-abi: no build artifact at\n  ${artifactPath}\n\n` +
+    `\nsync-abi: no build artifact at\n  ${artifactPath}\n` +
+      `and no generated file at\n  ${outPath}\n\n` +
       `Run \`forge build\` in contracts/ first (inside \`nix develop\`).\n`,
   );
   process.exit(1);
