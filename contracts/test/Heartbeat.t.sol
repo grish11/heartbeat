@@ -20,7 +20,12 @@ contract HeartbeatTest is Test {
     function setUp() public {
         fingerprint = keccak256("test file");
         ipfsLink = "faketestlink";
-        heartbeat = new Heartbeat(60 seconds, 30 seconds, fingerprint, ipfsLink);
+        heartbeat = new Heartbeat(
+            60 seconds,
+            30 seconds,
+            fingerprint,
+            ipfsLink
+        );
     }
 
     // Some test functions use these, this is a helper function
@@ -211,7 +216,6 @@ contract HeartbeatTest is Test {
         vm.expectRevert();
         heartbeat.setVotesNeeded(0);
     }
-
     // Set the amount of votes greater than the amount of guardians
     function testVotesMoreThanGuardians() public {
         setupThreeGuardians();
@@ -241,7 +245,6 @@ contract HeartbeatTest is Test {
         vm.expectRevert();
         heartbeat.removeGuardian(asta);
     }
-
     // Voting before the Expiry can't happen
     function testVotingBeforeExpiry() public {
         setupThreeGuardians();
@@ -274,7 +277,6 @@ contract HeartbeatTest is Test {
         vm.prank(asta);
         heartbeat.confirmRelease();
     }
-
     // One vote out of two needed doesn't release the switch
     function testOneVoteNotEnough() public {
         setupThreeGuardians();
@@ -288,7 +290,7 @@ contract HeartbeatTest is Test {
         assertEq(heartbeat.voteCount(), 1);
 
         // Ginko's card records the vote
-        (bool hasVoted,) = heartbeat.guardians(ginko);
+        (bool hasVoted, ) = heartbeat.guardians(ginko);
         assertTrue(hasVoted);
     }
 
