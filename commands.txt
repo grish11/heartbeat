@@ -1,3 +1,0 @@
-nix develop -- to start the dev env
-forge build
-forge test -- run all the tests
