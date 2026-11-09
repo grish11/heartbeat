@@ -105,6 +105,12 @@ better said plainly than discovered by a user.
 - **IPFS needs someone pinning.** We use [Pinata][pinata]; guardians should keep
   their own copy. [CIDs are content-addressed][cid], so any node with the same
   bytes satisfies the link already on-chain.
+- **A testnet is not a home for this.** The demo runs on Sepolia, where ETH is
+  free because it is worthless — and testnets get retired. Sepolia's own
+  [end-of-life][sunset] has already passed; it is still running, with Hoodi as
+  successor. A switch meant to sit untouched for years would vanish with the
+  chain it lives on. Real use needs mainnet or an L2, where paying real gas is
+  what buys permanence.
 - **A half-configured switch bricks.** Every owner function is `notExpired`, and
   releasing needs `votesNeeded > 0`. A switch that expires with no guardians can
   never be used again by anyone. The UI warns; moving guardians into the
@@ -288,6 +294,7 @@ instead of copying addresses by hand, and reminders before a check-in is due.
 - [Next.js][next] · [RainbowKit][rainbow] · [wagmi][wagmi] · [viem][viem]
 - [IPFS content addressing][cid] · [Pinata upload API][pinata]
 
+[sunset]: https://ethereum-magicians.org/t/sepolia-testnet-replacement-sunsetting/28647
 [reg]: https://www.theregister.com/2010/08/02/wikileaks_insurance/
 [schneier]: https://www.schneier.com/blog/archives/2010/08/wikileaks_insur.html
 [shamir-paper]: https://doi.org/10.1145/359168.359176
