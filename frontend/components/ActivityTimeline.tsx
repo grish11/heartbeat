@@ -8,6 +8,7 @@ import type { AbiEvent } from "viem";
 import { shortHex } from "@/lib/format";
 import { useSwitchAddress } from "@/lib/SwitchContext";
 import { heartbeatAbi } from "@/lib/heartbeat";
+import { fetchLogsInChunks, findDeploymentBlock } from "@/lib/logs";
 import { Card } from "./ui";
 
 const EVENTS = heartbeatAbi.filter(
@@ -40,26 +41,45 @@ export function ActivityTimeline() {
   // Re-fetch whenever a new block arrives, so the timeline is live.
   const { data: blockNumber } = useBlockNumber({ watch: true });
 
+  // A switch's deployment block never changes, so find it once and keep it.
+  // The binary search costs ~24 RPC calls; repeating it on every new block
+  // would exhaust a provider's rate limit within minutes.
+  const { data: deployedAt } = useQuery({
+    queryKey: ["heartbeat-deploy-block", address],
+    enabled: Boolean(client),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: 1,
+    queryFn: async () => {
+      if (!client) throw new Error("No RPC client available.");
+      const latest = await client.getBlockNumber();
+      // Not fromBlock 0: providers cap getLogs ranges — Infura at 10,000
+      // blocks — and Sepolia is past 12 million.
+      return findDeploymentBlock(client, address, latest);
+    },
+  });
+
   const {
     data: logs,
     isPending,
+    error,
     refetch,
   } = useQuery({
-    // The block number deliberately stays out of the key: including it minted a
-    // fresh cache entry every block and refetched all history each time.
-    queryKey: ["heartbeat-logs", address],
-    enabled: Boolean(client),
+    // The block number stays out of the key: including it minted a fresh cache
+    // entry every block and refetched all history each time.
+    queryKey: ["heartbeat-logs", address, deployedAt?.toString()],
+    enabled: Boolean(client) && deployedAt !== undefined,
     queryFn: async () => {
-      // fromBlock 0 is fine on a local chain. On Sepolia this should start at
-      // the switch's deployment block instead of scanning all of history.
-      // https://viem.sh/docs/actions/public/getLogs
-      if (!client) throw new Error("No RPC client available.");
-      const found = await client.getLogs({
-        address,
-        events: EVENTS,
-        fromBlock: 0n,
-        toBlock: "latest",
-      });
+      if (!client || deployedAt === undefined) {
+        throw new Error("No RPC client available.");
+      }
+      const latest = await client.getBlockNumber();
+      const found = await fetchLogsInChunks(
+        client,
+        { address, events: EVENTS },
+        deployedAt,
+        latest,
+      );
       return found.reverse(); // newest first
     },
   });
@@ -73,6 +93,10 @@ export function ActivityTimeline() {
     <Card title="Activity">
       {isPending ? (
         <p className="text-sm text-neutral-500">Reading history…</p>
+      ) : error ? (
+        <p className="text-sm text-red-300">
+          Could not read the history: {error.message}
+        </p>
       ) : !logs?.length ? (
         <p className="text-sm text-neutral-500">
           Nothing has happened yet. Deploying the switch counted as the first
