@@ -7,11 +7,5 @@ contracts/cache/
 # raw screen recording (217 MB) — demo.mp4 is the compressed version
 demo_video.mp4
 
-# Comic Code is a commercial font. Publishing the .otf files would redistribute
-# it, which the licence does not permit. The app falls back to a system
-# monospace without them. Remove these lines only if you hold a licence that
-# allows redistribution.
-frontend/app/fonts/*.otf
-
 # stray Next.js build output if a build is run from the repo root
 /.next/
