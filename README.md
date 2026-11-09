@@ -6,6 +6,11 @@ Lock a file behind a timer *and* a group of guardians. Check in to prove you're
 okay. Stop checking in, and your guardians vote to release it. A fingerprint on
 the blockchain proves the file they recover is your untouched original.
 
+> **How this was built.** The Solidity contract (`contracts/src/Heartbeat.sol`)
+> and its Foundry tests (`contracts/test/Heartbeat.t.sol`) are hand-written, no
+> AI. The frontend in `frontend/` was built with
+> [Claude Code](https://claude.com/claude-code).
+
 ## Demo
 
 https://github.com/user-attachments/assets/ebe6356a-7f45-4d02-820c-1c5ac5a75e14
@@ -86,7 +91,10 @@ wrong key or a tampered file fails loudly instead of returning plausible garbage
 All of it runs in the browser's built-in [Web Crypto API][webcrypto] — no
 hand-rolled cryptography, no third-party crypto library.
 
-### What we don't pretend
+### Current obstacles
+
+Some of these are fixable, others are inherent to the design. Either way,
+better said plainly than discovered by a user.
 
 - **Guardians hold shares from day one.** Enough of them could collude early.
   `released()` coordinates honest people; it doesn't restrain dishonest ones.
