@@ -3,23 +3,14 @@
 import { useState } from "react";
 import { formatEther, parseEther } from "viem";
 import { useAccount, useBalance } from "wagmi";
-import { anvil } from "wagmi/chains";
+import { anvil, sepolia } from "wagmi/chains";
 
 import { Button, Note } from "./ui";
 
 const ANVIL_RPC = "http://127.0.0.1:8545";
 const TOP_UP = parseEther("1000");
 
-/**
- * Local-dev only: tops the connected account up with fake ETH.
- *
- * Anvil pre-funds its own ten accounts, but an account you made yourself in
- * MetaMask starts at zero and can't pay gas. anvil_setBalance just sets it —
- * no faucet, no mining, no real money. Anvil allows cross-origin calls, so
- * the browser can ask it directly.
- *
- * Renders only on chain 31337, so it can never appear on Sepolia or mainnet.
- */
+/** One JSON-RPC call to the local Anvil node. */
 async function rpc(method: string, params: unknown[]) {
   const response = await fetch(ANVIL_RPC, {
     method: "POST",
@@ -30,13 +21,38 @@ async function rpc(method: string, params: unknown[]) {
   if (body.error) throw new Error(body.error.message);
 }
 
-export function DevFaucet() {
+/**
+ * Public Sepolia faucets. There is no API to automate these: they are gated by
+ * captchas and account checks precisely because the ETH is free.
+ */
+const SEPOLIA_FAUCETS: [string, string][] = [
+  [
+    "Google Cloud",
+    "https://cloud.google.com/application/web3/faucet/ethereum/sepolia",
+  ],
+  ["Alchemy", "https://www.alchemy.com/faucets/ethereum-sepolia"],
+  ["Infura", "https://www.infura.io/faucet/sepolia"],
+];
+
+/**
+ * Shows the connected account's balance, and how to top it up.
+ *
+ * On Anvil this is a button: anvil_setBalance rewrites the balance outright,
+ * because Anvil is a toy chain the developer controls. No real network has an
+ * equivalent — minting yourself money is precisely what a blockchain prevents —
+ * so on Sepolia this points at faucets instead.
+ *
+ * Renders on Anvil and Sepolia only, never on a network with real money.
+ */
+export function TestnetFunds() {
   const { address, chainId, isConnected } = useAccount();
   const { data: balance, refetch } = useBalance({ address });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!isConnected || chainId !== anvil.id || !address) return null;
+  const onAnvil = chainId === anvil.id;
+  const onSepolia = chainId === sepolia.id;
+  if (!isConnected || !address || (!onAnvil && !onSepolia)) return null;
 
   async function fund() {
     setBusy(true);

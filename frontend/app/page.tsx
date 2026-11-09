@@ -6,7 +6,7 @@ import { useState } from "react";
 import { isAddress } from "viem";
 import { useAccount } from "wagmi";
 
-import { DevFaucet } from "@/components/DevFaucet";
+import { TestnetFunds } from "@/components/TestnetFunds";
 import { Button, Note, TextInput } from "@/components/ui";
 import { DEV_SWITCH_ADDRESS } from "@/lib/contract";
 
@@ -40,7 +40,7 @@ export default function Home() {
             </p>
             <ConnectButton />
           </div>
-          <DevFaucet />
+          <TestnetFunds />
         </section>
 
         <section className="grid gap-6 md:grid-cols-2">

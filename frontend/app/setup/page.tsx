@@ -11,7 +11,7 @@ import {
   useWriteContract,
 } from "wagmi";
 
-import { DevFaucet } from "@/components/DevFaucet";
+import { TestnetFunds } from "@/components/TestnetFunds";
 import { DownloadShares, ShareCard } from "@/components/ShareCard";
 import { DurationInput, toSeconds } from "@/components/DurationInput";
 import { Button, Card, Note, TextInput, revertReason } from "@/components/ui";
@@ -254,7 +254,7 @@ export default function SetupPage() {
         </Note>
       )}
 
-      <DevFaucet />
+      <TestnetFunds />
 
       <Card
         title="File"
