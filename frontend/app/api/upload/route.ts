@@ -25,7 +25,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const incoming = await request.formData();
+  // formData() throws outright on a body that is not multipart, which would
+  // surface as an unhandled 500 rather than telling the caller what is wrong.
+  let incoming: FormData;
+  try {
+    incoming = await request.formData();
+  } catch {
+    return NextResponse.json(
+      { error: "Expected a multipart form upload." },
+      { status: 400 },
+    );
+  }
+
   const file = incoming.get("file");
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "No file supplied." }, { status: 400 });
@@ -43,7 +54,14 @@ export async function POST(request: Request) {
     method: "POST",
     headers: { Authorization: `Bearer ${jwt}` },
     body: outgoing,
-  });
+  }).catch(() => null);
+
+  if (!response) {
+    return NextResponse.json(
+      { error: "Could not reach Pinata." },
+      { status: 502 },
+    );
+  }
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");

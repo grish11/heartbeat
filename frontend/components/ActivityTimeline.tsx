@@ -53,7 +53,8 @@ export function ActivityTimeline() {
       // fromBlock 0 is fine on a local chain. On Sepolia this should start at
       // the switch's deployment block instead of scanning all of history.
       // https://viem.sh/docs/actions/public/getLogs
-      const found = await client!.getLogs({
+      if (!client) throw new Error("No RPC client available.");
+      const found = await client.getLogs({
         address,
         events: EVENTS,
         fromBlock: 0n,

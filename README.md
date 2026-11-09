@@ -154,7 +154,7 @@ forge test           # 34 tests
 ```bash
 cd frontend          # terminal 3
 npm install
-npm test             # 52 tests
+npm test             # 65 tests
 npm run dev          # localhost:3000
 ```
 
@@ -235,7 +235,7 @@ frontend/
     shamir.ts               key splitting
     heartbeatState.ts       alive / grace / expired / released
     useHeartbeat.ts         contract reads and writes
-    __tests__/              52 tests
+    __tests__/              65 tests
 ```
 
 The ABI is generated from the Foundry build, never hand-written.

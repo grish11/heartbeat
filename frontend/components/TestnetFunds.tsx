@@ -80,18 +80,44 @@ export function TestnetFunds() {
   return (
     <div className="mt-4 flex flex-wrap items-center gap-3">
       <span className="text-xs text-neutral-500">
-        Local chain balance:{" "}
+        {onAnvil ? "Local chain balance" : "Sepolia balance"}:{" "}
         <span className={empty ? "text-amber-300" : "text-neutral-300"}>
           {balance
-            ? `${Number(formatEther(balance.value)).toFixed(2)} ETH`
+            ? `${Number(formatEther(balance.value)).toFixed(4)} ETH`
             : "…"}
         </span>
       </span>
-      <Button onClick={fund} busy={busy}>
-        Get test ETH
-      </Button>
-      {empty && <Note>You need test ETH to pay gas on anvil.</Note>}
-      {error && <Note tone="error">{error}</Note>}
+
+      {onAnvil ? (
+        <>
+          <Button onClick={fund} busy={busy}>
+            Get test ETH
+          </Button>
+          {empty && <Note>You need test ETH to pay gas on anvil.</Note>}
+          {error && <Note tone="error">{error}</Note>}
+        </>
+      ) : (
+        empty && (
+          <span className="text-xs text-neutral-500">
+            Sepolia ETH is free, but no network lets you mint your own — it has
+            to come from a faucet:{" "}
+            {SEPOLIA_FAUCETS.map(([name, url], i) => (
+              <span key={url}>
+                {i > 0 && ", "}
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-emerald-300 underline underline-offset-4 hover:text-emerald-200"
+                >
+                  {name}
+                </a>
+              </span>
+            ))}
+            .
+          </span>
+        )
+      )}
     </div>
   );
 }
