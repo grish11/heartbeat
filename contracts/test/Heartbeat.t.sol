@@ -20,12 +20,7 @@ contract HeartbeatTest is Test {
     function setUp() public {
         fingerprint = keccak256("test file");
         ipfsLink = "faketestlink";
-        heartbeat = new Heartbeat(
-            60 seconds,
-            30 seconds,
-            fingerprint,
-            ipfsLink
-        );
+        heartbeat = new Heartbeat(60 seconds, 30 seconds, fingerprint, ipfsLink);
     }
 
     // Some test functions use these, this is a helper function
@@ -216,6 +211,7 @@ contract HeartbeatTest is Test {
         vm.expectRevert();
         heartbeat.setVotesNeeded(0);
     }
+
     // Set the amount of votes greater than the amount of guardians
     function testVotesMoreThanGuardians() public {
         setupThreeGuardians();
@@ -245,6 +241,7 @@ contract HeartbeatTest is Test {
         vm.expectRevert();
         heartbeat.removeGuardian(asta);
     }
+
     // Voting before the Expiry can't happen
     function testVotingBeforeExpiry() public {
         setupThreeGuardians();
@@ -277,6 +274,7 @@ contract HeartbeatTest is Test {
         vm.prank(asta);
         heartbeat.confirmRelease();
     }
+
     // One vote out of two needed doesn't release the switch
     function testOneVoteNotEnough() public {
         setupThreeGuardians();
@@ -290,7 +288,7 @@ contract HeartbeatTest is Test {
         assertEq(heartbeat.voteCount(), 1);
 
         // Ginko's card records the vote
-        (bool hasVoted, ) = heartbeat.guardians(ginko);
+        (bool hasVoted,) = heartbeat.guardians(ginko);
         assertTrue(hasVoted);
     }
 
@@ -311,5 +309,68 @@ contract HeartbeatTest is Test {
     function testEmptyLinkReverts() public {
         vm.expectRevert();
         new Heartbeat(60 seconds, 30 seconds, fingerprint, "");
+    }
+
+    // ---------- Events ----------
+
+    // Checking in announces the new check-in time
+    function testEventCheckIn() public {
+        skip(15); // move time so the timestamp isn't the deploy time
+        vm.expectEmit();
+        emit Heartbeat.CheckedIn(block.timestamp);
+        heartbeat.checkIn();
+    }
+
+    // Adding a guardian announces who was added
+    function testEventGuardianAdded() public {
+        // Not using the helper, since it would add Ginko before we start watching
+        ginko = makeAddr("ginko");
+        vm.expectEmit();
+        emit Heartbeat.GuardianAdded(ginko);
+        heartbeat.addGuardian(ginko);
+    }
+
+    // A vote announces who voted and the new total
+    function testEventVoteCast() public {
+        setupThreeGuardians();
+        heartbeat.setVotesNeeded(2);
+        skip(91); // past the deadline, so voting is open
+
+        vm.expectEmit();
+        emit Heartbeat.VoteCast(ginko, 1); // Ginko's vote, total is now 1
+
+        vm.prank(ginko);
+        heartbeat.confirmRelease();
+    }
+
+    // The deciding vote announces the release
+    function testEventReleased() public {
+        setupThreeGuardians();
+        heartbeat.setVotesNeeded(2);
+        skip(91);
+
+        // First vote: not enough to release yet
+        vm.prank(ginko);
+        heartbeat.confirmRelease();
+
+        // Second vote reaches 2 of 2, so Released should fire
+        // (VoteCast also fires, and Foundry allows it in between)
+        vm.expectEmit();
+        emit Heartbeat.Released(block.timestamp);
+
+        vm.prank(asta);
+        heartbeat.confirmRelease();
+    }
+
+    function testEventGuaridanRemoved() public {
+        setupThreeGuardians();
+        emit Heartbeat.GuardianRemoved(asta);
+        heartbeat.removeGuardian(asta);
+    }
+
+    function testEventVotesNeededSet() public {
+        setupThreeGuardians();
+        emit Heartbeat.VotesNeededSet(2);
+        heartbeat.setVotesNeeded(2);
     }
 }

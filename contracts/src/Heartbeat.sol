@@ -57,16 +57,30 @@ contract Heartbeat {
         require(isExpired(), "Switch is not expired!");
         _;
     }
+    // ---------- Events --------------
+
+    // Used for resetting the countdown
+    event CheckedIn(uint256 timestamp);
+
+    // Used for adding guardian to list
+    event GuardianAdded(address indexed guardian);
+
+    // Used for removing guardians from the list
+    event GuardianRemoved(address indexed guardian);
+
+    // Used to show 2 of 3 votes needed to confirm
+    event VotesNeededSet(uint256 votesNeeded);
+
+    // Show vote progress and who voted
+    event VoteCast(address indexed guardian, uint256 voteCount);
+
+    // Show Released on the screen and unlock button
+    event Released(uint256 timestamp);
 
     // ---------- Constructor ----------
 
-    constructor(
-        uint256 _interval,
-        uint256 _gracePeriod,
-        bytes32 _fingerprint,
-        string memory _ipfsLink
-    ) {
-        require(_fingerprint != bytes32(0), "Fingeprint is empty/not set!");
+    constructor(uint256 _interval, uint256 _gracePeriod, bytes32 _fingerprint, string memory _ipfsLink) {
+        require(_fingerprint != bytes32(0), "Fingerprint is empty/not set!");
         require(bytes(_ipfsLink).length > 0, "IPFS link is empty!");
         // msg.sender is the person deploying the contract, so they become the owner
         owner = msg.sender;
@@ -87,6 +101,7 @@ contract Heartbeat {
 
     function checkIn() public onlyOwner notExpired {
         lastCheckIn = block.timestamp;
+        emit CheckedIn(block.timestamp);
     }
 
     // ---------- Owner: manage guardians ----------
@@ -106,13 +121,13 @@ contract Heartbeat {
 
         // Mark them as a guardian, tag your it!
         isGuardian[guardian] = true;
+        emit GuardianAdded(guardian);
     }
 
     function removeGuardian(address guardian) public onlyOwner notExpired {
         require(isGuardian[guardian], "Not a guardian!");
         require(
-            getGuardianCount() - 1 >= votesNeeded,
-            "Can't remove guardian: cant have more votes than guardians silly!"
+            getGuardianCount() - 1 >= votesNeeded, "Can't remove guardian: cant have more votes than guardians silly!"
         );
 
         // Positions in the list
@@ -136,6 +151,8 @@ contract Heartbeat {
         isGuardian[guardian] = false;
         delete guardians[guardian];
         delete guardianIndex[guardian];
+
+        emit GuardianRemoved(guardian);
     }
 
     function getGuardianCount() public view returns (uint256) {
@@ -164,25 +181,22 @@ contract Heartbeat {
 
     function setVotesNeeded(uint256 _votesNeeded) public onlyOwner notExpired {
         require(_votesNeeded > 0, "Set votesNeeded greater than 0!");
-        require(
-            _votesNeeded <= getGuardianCount(),
-            "votesNeeded cannot be greater than guardian count!"
-        );
+        require(_votesNeeded <= getGuardianCount(), "votesNeeded cannot be greater than guardian count!");
         votesNeeded = _votesNeeded;
+        emit VotesNeededSet(votesNeeded);
     }
 
     function confirmRelease() public onlyGuardian onlyExpired {
         require(votesNeeded > 0, "votesNeeded not set!");
-        require(released == false, "Not yet released!");
-        require(
-            guardians[msg.sender].hasVoted == false,
-            "Guardian has already voted!"
-        );
+        require(released == false, "Already released!");
+        require(guardians[msg.sender].hasVoted == false, "Guardian has already voted!");
 
         guardians[msg.sender].hasVoted = true;
         voteCount += 1;
+        emit VoteCast(msg.sender, voteCount);
         if (voteCount == votesNeeded) {
             released = true;
+            emit Released(block.timestamp);
         }
     }
 }
