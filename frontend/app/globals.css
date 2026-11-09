@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Comic Code everywhere — it's a monospace face, so sans and mono are the
+     same thing here. The variable is defined by next/font in app/layout.tsx. */
+  --font-sans: var(--font-comic-code);
+  --font-mono: var(--font-comic-code);
+}
+
+body {
+  /* Everything renders 30% larger — easier to read, and the demo is going to
+     be watched on a projector. `zoom` scales layout as well as text, so it
+     also enlarges RainbowKit's button, which styles itself in px. */
+  zoom: 1.3;
+
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-comic-code), ui-monospace, monospace;
+}
+
+/* RainbowKit's modal and button render from their own CSS variables rather than
+   Tailwind, so point their font stack at Comic Code too. Corner rounding is
+   handled by borderRadius: "none" on the theme in app/providers.tsx. */
+:root {
+  --rk-fonts-body: var(--font-comic-code), ui-monospace, monospace;
+}
+
