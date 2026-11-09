@@ -111,6 +111,14 @@ better said plainly than discovered by a user.
   successor. A switch meant to sit untouched for years would vanish with the
   chain it lives on. Real use needs mainnet or an L2, where paying real gas is
   what buys permanence.
+- **Wallets flag the deployed site.** MetaMask's scanner shows a
+  "signs of phishing or wallet-draining activity" warning. It is a false
+  positive with an understandable cause: the domain is new, it is a
+  `*.vercel.app` subdomain (heavily abused by drainers), and the app asks a
+  freshly-connected wallet to deploy a contract and then sign four more
+  transactions — structurally what a drainer does. Connecting still works. A
+  custom domain would avoid most of it, and it is a real adoption problem for
+  honest dapps.
 - **A half-configured switch bricks.** Every owner function is `notExpired`, and
   releasing needs `votesNeeded > 0`. A switch that expires with no guardians can
   never be used again by anyone. The UI warns; moving guardians into the

@@ -9,3 +9,6 @@ demo_video.mp4
 
 # stray Next.js build output if a build is run from the repo root
 /.next/
+
+# local working notes, not part of the published project
+CLAUDE.md
