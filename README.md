@@ -100,7 +100,10 @@ better said plainly than discovered by a user.
   `released()` coordinates honest people; it doesn't restrain dishonest ones.
   Same trust model as a multisig wallet.
 - **Whoever combines the shares sees the file.** 2-of-3 stops one guardian acting
-  alone, not two deciding one does the work.
+  alone, not two deciding one does the work. The Unlock tab is deliberately open
+  to anyone: unlocking is local computation, never a transaction, so a wallet
+  check would stop nobody — and the person assembling the shares is often not a
+  guardian at all.
 - **Guardian addresses are public forever.** Use fresh wallets.
 - **IPFS needs someone pinning.** We use [Pinata][pinata]; guardians should keep
   their own copy. [CIDs are content-addressed][cid], so any node with the same

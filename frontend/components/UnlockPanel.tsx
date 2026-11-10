@@ -17,6 +17,20 @@ type Result = {
   matches: boolean;
 };
 
+/**
+ * Deliberately not gated on being a guardian.
+ *
+ * Unlocking is local computation, not a transaction: combine shares, fetch the
+ * ciphertext, decrypt, hash. The contract is never called, so there is nothing
+ * for it to reject — unlike checkIn (onlyOwner) or confirmRelease
+ * (onlyGuardian), whose panels do gate on the connected wallet.
+ *
+ * Requiring a guardian wallet here would also be wrong twice over. It stops
+ * nobody, since this pipeline is open-source client-side code anyone can run
+ * offline. And whoever assembles the shares frequently is not a guardian:
+ * guardians handing their shares to a journalist or a lawyer is the entire
+ * point of the project.
+ */
 export function UnlockPanel() {
   const switchAddress = useSwitchAddress();
   const hb = useHeartbeat();
@@ -120,7 +134,7 @@ export function UnlockPanel() {
   return (
     <Card
       title="Unlock"
-      hint="paste enough guardian shares to rebuild the file"
+      hint="anyone holding enough shares can unlock — they need not be a guardian"
     >
       <div className="flex flex-col gap-2">
         {shares.map((share, i) => (
