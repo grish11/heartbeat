@@ -1,6 +1,8 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+
+import { NetworkBadge } from "./NetworkBadge";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -21,7 +23,10 @@ export function SiteHeader() {
           A dead man&apos;s switch, guarded by people you trust.
         </p>
       </div>
-      <ConnectButton />
+      <div className="flex flex-wrap items-center gap-3">
+        <NetworkBadge />
+        <ConnectButton />
+      </div>
     </header>
   );
 }

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { isAddress } from "viem";
+
+import { isRealMoney } from "@/lib/chains";
 import {
   useAccount,
   useDeployContract,
@@ -14,6 +16,7 @@ import {
 import { TestnetFunds } from "@/components/TestnetFunds";
 import { DownloadShares, ShareCard } from "@/components/ShareCard";
 import { DurationInput, toSeconds } from "@/components/DurationInput";
+import { RealMoneyWarning } from "@/components/RealMoneyWarning";
 import { Button, Card, Note, TextInput, revertReason } from "@/components/ui";
 import { computeFingerprint, encryptEnvelope, randomSalt } from "@/lib/crypto";
 import { heartbeatAbi, heartbeatBytecode } from "@/lib/heartbeat";
@@ -32,7 +35,8 @@ type Stage =
 
 export default function SetupPage() {
   const router = useRouter();
-  const { isConnected } = useAccount();
+  const { isConnected, chainId } = useAccount();
+  const [acceptedCost, setAcceptedCost] = useState(false);
 
   const [file, setFile] = useState<File | null>(null);
   const [guardians, setGuardians] = useState<string[]>([""]);
@@ -70,7 +74,11 @@ export default function SetupPage() {
   const graceSeconds = toSeconds(grace.amount, grace.unit);
   const timingValid = intervalSeconds > 0 && graceSeconds > 0;
 
+  // A real-money chain needs an explicit acknowledgement; a testnet does not.
+  const costAccepted = !isRealMoney(chainId) || acceptedCost;
+
   const canSubmit =
+    costAccepted &&
     isConnected &&
     file &&
     guardiansValid &&
@@ -255,6 +263,19 @@ export default function SetupPage() {
       )}
 
       <TestnetFunds />
+
+      <RealMoneyWarning chainId={chainId} />
+      {isRealMoney(chainId) && (
+        <label className="flex items-start gap-3 text-sm text-neutral-300">
+          <input
+            type="checkbox"
+            checked={acceptedCost}
+            onChange={(e) => setAcceptedCost(e.target.checked)}
+            className="mt-0.5 accent-amber-400"
+          />
+          I understand this spends real money and cannot be undone.
+        </label>
+      )}
 
       <Card
         title="File"

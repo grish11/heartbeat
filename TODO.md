@@ -37,19 +37,19 @@ which is the actual argument for an L2 — they stay cheap when mainnet does not
 
 **Steps**
 
-- [ ] Add the chains to `frontend/lib/wagmi.ts`, with a transport each. Keep
-      `NEXT_PUBLIC_DEFAULT_CHAIN` deciding which is first.
-- [ ] Get an RPC endpoint per chain. Infura covers all of these — tick them in
-      the dashboard, then add `NEXT_PUBLIC_BASE_RPC_URL` etc.
+- [x] Add the chains to `frontend/lib/wagmi.ts`, with a transport each.
+- [x] One `NEXT_PUBLIC_INFURA_KEY` serves every chain; the code varies the
+      subdomain (`sepolia`, `base-sepolia`, `base-mainnet`, `mainnet`).
+- [ ] **Enable Base and Ethereum on the key** in the Infura dashboard. Until
+      then those two answer `401 project ID does not have access`.
 - [ ] **Add every new origin to the Infura allowlist**, including
       `localhost:3000`. A missing origin returns `403 rejected due to project ID
       settings` and every read silently fails.
-- [ ] Show the connected chain prominently on the switch page. A guardian
-      looking at the wrong network sees a valid-looking address and the wrong
-      contract.
-- [ ] **Guard the real-money chains.** Before deploying on `mainnet` or `base`,
-      show the estimated cost in ETH and ask for explicit confirmation. Someone
-      clicking through a hackathon demo must not spend real money by accident.
+- [x] Show the connected chain prominently — `NetworkBadge`, labelled
+      "test network" or "real money".
+- [x] **Guard the real-money chains.** `RealMoneyWarning` shows the estimated
+      cost at current gas, and setup is blocked until the user ticks that they
+      understand it spends real money.
 - [ ] Deploy a demo switch on Base Sepolia and verify the whole flow there.
 
 **Watch out:** each chain is a separate world. A switch on Base does not exist
