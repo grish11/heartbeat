@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CHAINS, chainInfo, isRealMoney } from "/home/may/Programming/heartbeat/frontend/lib/chains";
+import { CHAINS, chainInfo, isRealMoney } from "../chains";
 
 describe("chain metadata", () => {
   it("covers exactly the four intended networks", () => {
@@ -8,9 +8,9 @@ describe("chain metadata", () => {
 
   it("labels the money correctly", () => {
     expect(isRealMoney(11155111)).toBe(false); // Sepolia
-    expect(isRealMoney(84532)).toBe(false);    // Base Sepolia
-    expect(isRealMoney(8453)).toBe(true);      // Base
-    expect(isRealMoney(1)).toBe(true);         // Ethereum
+    expect(isRealMoney(84532)).toBe(false); // Base Sepolia
+    expect(isRealMoney(8453)).toBe(true); // Base
+    expect(isRealMoney(1)).toBe(true); // Ethereum
   });
 
   it("treats an unknown chain as not-real rather than guessing", () => {
