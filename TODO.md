@@ -7,58 +7,7 @@ items below make the project better, not merely finished.
 
 ---
 
-## 1. Multi-chain: let people pick Ethereum, an L2, or Sepolia
-
-**Why.** The contract is chain-agnostic; nothing in it assumes a network. Right
-now the frontend hardcodes one choice. Offering several makes a concrete point
-to a judge: *the design works anywhere, and here is what each one costs.*
-
-**Chains to support** (all exported by `viem/chains`, ids verified):
-
-| Chain | viem export | id | Role |
-|---|---|---|---|
-| Sepolia | `sepolia` | 11155111 | free testing, the default |
-| Base Sepolia | `baseSepolia` | 84532 | free L2 testing |
-| Base | `base` | 8453 | real L2, real money |
-| Ethereum | `mainnet` | 1 | real L1, real money |
-
-**Measured gas prices** (nominal $3000/ETH; L2 figures exclude the L1 data fee,
-so treat them as a floor):
-
-| Chain | gas price | deploy a switch | one check-in |
-|---|---|---|---|
-| Ethereum | 0.0950 gwei | $0.51 | $0.008 |
-| Base | 0.0060 gwei | $0.03 | ~$0.000 |
-| Arbitrum | 0.0203 gwei | $0.11 | $0.002 |
-| Optimism | 0.0010 gwei | $0.01 | ~$0.000 |
-
-Mainnet is unusually cheap right now. At a busy 30 gwei that deploy is **$160**,
-which is the actual argument for an L2 — they stay cheap when mainnet does not.
-
-**Steps**
-
-- [x] Add the chains to `frontend/lib/wagmi.ts`, with a transport each.
-- [x] One `NEXT_PUBLIC_INFURA_KEY` serves every chain; the code varies the
-      subdomain (`sepolia`, `base-sepolia`, `base-mainnet`, `mainnet`).
-- [ ] **Enable Base and Ethereum on the key** in the Infura dashboard. Until
-      then those two answer `401 project ID does not have access`.
-- [ ] **Add every new origin to the Infura allowlist**, including
-      `localhost:3000`. A missing origin returns `403 rejected due to project ID
-      settings` and every read silently fails.
-- [x] Show the connected chain prominently — `NetworkBadge`, labelled
-      "test network" or "real money".
-- [x] **Guard the real-money chains.** `RealMoneyWarning` shows the estimated
-      cost at current gas, and setup is blocked until the user ticks that they
-      understand it spends real money.
-- [ ] Deploy a demo switch on Base Sepolia and verify the whole flow there.
-
-**Watch out:** each chain is a separate world. A switch on Base does not exist
-on Ethereum. The same address on two chains is two unrelated contracts — which
-is exactly why shares carry a fingerprint tag.
-
----
-
-## 2. One-transaction setup — contract change, hand-written
+## 1. One-transaction setup — contract change, hand-written
 
 **Why this is the most valuable item.** Creating a switch currently costs
 1 deploy + 1 tx per guardian + 1 for `setVotesNeeded` — five wallet prompts for
@@ -92,7 +41,7 @@ Saves ~84k gas, about 4%. The gas is not the point; the impossible-bad-state is.
 
 ---
 
-## 3. Custom domain
+## 2. Custom domain
 
 **Why.** The first thing a judge currently sees is MetaMask warning *"signs of
 phishing or wallet-draining activity"*. It is a false positive — new domain,
@@ -109,7 +58,7 @@ Highest impact per minute of work on this list.
 
 ---
 
-## 4. Trim the demo video
+## 3. Trim the demo video
 
 Currently **4m55s**. Judges watching many submissions rarely finish a five
 minute video.
@@ -122,7 +71,7 @@ The setup explanation belongs in the README, which already has it.
 
 ---
 
-## 5. Per-guardian invite links
+## 4. Per-guardian invite links
 
 Copying three addresses by hand is the clumsiest part of setup.
 
@@ -144,3 +93,12 @@ Copying three addresses by hand is the clumsiest part of setup.
 - README with sources, demo video, public repo
 - Live on Sepolia at <https://heartbeat-indol.vercel.app>
 - 200-word write-up
+- **Multi-chain.** Sepolia, Base Sepolia, Base and Ethereum, all four verified
+  live through Infura from both origins. Testnets are listed first so a
+  real-money chain is always a deliberate choice. `NetworkBadge` labels the
+  connected chain "test network" or "real money"; `RealMoneyWarning` estimates
+  the setup cost at current gas and blocks creation until acknowledged. One
+  `NEXT_PUBLIC_INFURA_KEY` serves every chain, varying only the subdomain.
+
+  Still worth doing once: **create a switch on Base Sepolia** and run it through
+  to unlock, to confirm the flow holds on a chain that is not Sepolia.
