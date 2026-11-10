@@ -273,7 +273,10 @@ export default function SetupPage() {
             onChange={(e) => setAcceptedCost(e.target.checked)}
             className="mt-0.5 accent-amber-400"
           />
-          I understand this spends real money and cannot be undone.
+          <span>
+            I understand this spends real money and cannot be undone.{" "}
+            <span className="text-amber-300">Required to continue.</span>
+          </span>
         </label>
       )}
 
