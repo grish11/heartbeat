@@ -1,7 +1,6 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { isAddress } from "viem";
@@ -23,17 +22,7 @@ export default function Home() {
     <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.02] p-8">
       <div className="flex flex-col gap-8">
         <div>
-          <h1 className="flex items-center gap-3 text-2xl font-bold">
-            <Image
-              src="/heart.png"
-              alt=""
-              width={32}
-              height={32}
-              className="[image-rendering:pixelated]"
-              priority
-            />
-            Heartbeat
-          </h1>
+          <h1 className="text-2xl font-bold">Heartbeat</h1>
           <p className="mt-1 text-sm text-neutral-400">
             A dead man&apos;s switch, guarded by people you trust.
           </p>

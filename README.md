@@ -1,4 +1,4 @@
-# Heartbeat
+# <img src="media/heart.png" width="28" align="top" alt=""> Heartbeat
 
 **A dead man's switch on Ethereum, guarded by people you trust.**
 
