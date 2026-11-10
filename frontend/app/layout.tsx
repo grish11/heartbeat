@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 
@@ -40,6 +41,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             {children}
           </main>
         </Providers>
+        {/* Pageview counts only. It never sees the file, the key, or the
+            shares — those are computed in the browser and never serialised
+            anywhere this could reach. */}
+        <Analytics />
       </body>
     </html>
   );
