@@ -83,7 +83,9 @@ contract Heartbeat {
         uint256 _interval,
         uint256 _gracePeriod,
         bytes32 _fingerprint,
-        string memory _ipfsLink
+        string memory _ipfsLink,
+        uint256 _votesNeeded,
+        address[] memory passedInGuardianList
     ) {
         require(_fingerprint != bytes32(0), "Fingerprint is empty/not set!");
         require(bytes(_ipfsLink).length > 0, "IPFS link is empty!");
@@ -100,6 +102,41 @@ contract Heartbeat {
 
         fingerprint = _fingerprint;
         ipfsLink = _ipfsLink;
+
+        uint256 countGuardians = passedInGuardianList.length;
+        // 50 is far above any realistic guardian set — social-recovery schemes
+        // use a handful. The limit exists so an oversized array reverts clearly
+        // instead of running out of gas partway through the loop.
+        require(countGuardians <= 50, "Guardian count limited to 50.");
+
+        for (uint256 g = 0; g < countGuardians; ++g) {
+            address currentGuardian = passedInGuardianList[g];
+
+            // A zero address would be a guardian nobody controls: it inflates
+            // the count and can put votesNeeded permanently out of reach.
+            require(currentGuardian != address(0), "Guardian cannot be the zero address!");
+            require(isGuardian[currentGuardian] == false, "Already a guardian!");
+            require(owner != currentGuardian, "Guardian cannot be owner!");
+
+            // Same impl. as addGuardian()
+            guardianIndex[currentGuardian] = guardianList.length;
+
+            guardianList.push(currentGuardian);
+
+            guardians[currentGuardian] = Guardian(false, block.timestamp);
+
+            isGuardian[currentGuardian] = true;
+            emit GuardianAdded(currentGuardian);
+        }
+
+        // Last, because it is validated against the final guardian count.
+        // Same rules as setVotesNeeded: without them a switch could be created
+        // needing zero votes (bricked on expiry, nobody can release it) or more
+        // votes than it has guardians (a threshold that can never be reached).
+        require(_votesNeeded > 0, "Set votesNeeded greater than 0!");
+        require(_votesNeeded <= countGuardians, "votesNeeded cannot be greater than guardian count!");
+        votesNeeded = _votesNeeded;
+        emit VotesNeededSet(_votesNeeded);
     }
 
     // ---------- Owner: check-in ----------
@@ -132,8 +169,7 @@ contract Heartbeat {
     function removeGuardian(address guardian) public onlyOwner notExpired {
         require(isGuardian[guardian], "Not a guardian!");
         require(
-            getGuardianCount() - 1 >= votesNeeded,
-            "Can't remove guardian: cant have more votes than guardians silly!"
+            getGuardianCount() - 1 >= votesNeeded, "Can't remove guardian: cant have more votes than guardians silly!"
         );
 
         // Positions in the list
@@ -187,10 +223,7 @@ contract Heartbeat {
 
     function setVotesNeeded(uint256 _votesNeeded) public onlyOwner notExpired {
         require(_votesNeeded > 0, "Set votesNeeded greater than 0!");
-        require(
-            _votesNeeded <= getGuardianCount(),
-            "votesNeeded cannot be greater than guardian count!"
-        );
+        require(_votesNeeded <= getGuardianCount(), "votesNeeded cannot be greater than guardian count!");
         votesNeeded = _votesNeeded;
         emit VotesNeededSet(votesNeeded);
     }
@@ -198,10 +231,7 @@ contract Heartbeat {
     function confirmRelease() public onlyGuardian onlyExpired {
         require(votesNeeded > 0, "votesNeeded not set!");
         require(released == false, "Already released!");
-        require(
-            guardians[msg.sender].hasVoted == false,
-            "Guardian has already voted!"
-        );
+        require(guardians[msg.sender].hasVoted == false, "Guardian has already voted!");
 
         guardians[msg.sender].hasVoted = true;
         voteCount += 1;

@@ -15,22 +15,45 @@ contract HeartbeatTest is Test {
     bytes32 fingerprint;
     string ipfsLink;
 
-    // Fresh contract before every test: 60s interval, 30s grace period.
+    // Fresh contract before every test: 60s interval, 30s grace period,
+    // three guardians and a threshold of 1.
     // This test contract deploys it, so it's the owner.
+    //
+    // The guardians come from the constructor because a switch can no longer
+    // be created without them: votesNeeded must be at least 1 and at most the
+    // guardian count, so zero guardians is unconstructable.
     function setUp() public {
         fingerprint = keccak256("test file");
         ipfsLink = "faketestlink";
-        heartbeat = new Heartbeat(60 seconds, 30 seconds, fingerprint, ipfsLink);
-    }
 
-    // Some test functions use these, this is a helper function
-    function setupThreeGuardians() internal {
         ginko = makeAddr("ginko");
         asta = makeAddr("asta");
         bob = makeAddr("bob");
-        heartbeat.addGuardian(ginko);
-        heartbeat.addGuardian(asta);
-        heartbeat.addGuardian(bob);
+
+        heartbeat = new Heartbeat(
+            60 seconds,
+            30 seconds,
+            fingerprint,
+            ipfsLink,
+            1,
+            threeGuardians()
+        );
+    }
+
+    // The standard guardian set, in list order.
+    function threeGuardians() internal view returns (address[] memory) {
+        address[] memory gs = new address[](3);
+        gs[0] = ginko;
+        gs[1] = asta;
+        gs[2] = bob;
+        return gs;
+    }
+
+    // A one-element guardian list, for tests that only need a valid switch.
+    function oneGuardian(address g) internal pure returns (address[] memory) {
+        address[] memory gs = new address[](1);
+        gs[0] = g;
+        return gs;
     }
 
     // ---------- Owner & check-in ----------
@@ -70,13 +93,12 @@ contract HeartbeatTest is Test {
         heartbeat.addGuardian(bobAddr);
 
         assertTrue(heartbeat.isGuardian(bobAddr));
-        assertEq(heartbeat.getGuardianCount(), 1);
+        // setUp already seeded three, so this is the fourth.
+        assertEq(heartbeat.getGuardianCount(), 4);
     }
 
     // No duplicate guardians
     function testCannotAddSameGuardianTwice() public {
-        setupThreeGuardians();
-
         vm.expectRevert();
         heartbeat.addGuardian(bob);
     }
@@ -101,8 +123,6 @@ contract HeartbeatTest is Test {
 
     // Removing from the middle moves the last guardian into the gap
     function testRemoveGuardianFromMiddle() public {
-        setupThreeGuardians();
-
         heartbeat.removeGuardian(asta);
 
         assertEq(heartbeat.getGuardianCount(), 2);
@@ -120,8 +140,6 @@ contract HeartbeatTest is Test {
 
     // Removing the last guardian just pops them off
     function testRemoveGuardianFromEnd() public {
-        setupThreeGuardians();
-
         heartbeat.removeGuardian(bob);
 
         assertEq(heartbeat.getGuardianCount(), 2);
@@ -145,7 +163,6 @@ contract HeartbeatTest is Test {
 
     // Only the owner can remove guardians
     function testStrangerRemoveGuardian() public {
-        setupThreeGuardians();
         address strangerAddress = makeAddr("stranger");
         vm.expectRevert();
         vm.prank(strangerAddress);
@@ -173,8 +190,6 @@ contract HeartbeatTest is Test {
 
     // After expiry, the owner can't check in or change guardians
     function testOwnerLockedOutAfterExpiry() public {
-        setupThreeGuardians();
-
         skip(91); // past 60s + 30s
 
         vm.expectRevert();
@@ -191,8 +206,6 @@ contract HeartbeatTest is Test {
 
     // 2 of 3 guardians vote after expiry, so the switch is released
     function testPossibleRelease() public {
-        setupThreeGuardians();
-
         heartbeat.setVotesNeeded(2); // must be set before expiry
         skip(91);
 
@@ -207,14 +220,12 @@ contract HeartbeatTest is Test {
 
     // Amount of votes can't be zero
     function testVotesSetToZero() public {
-        setupThreeGuardians();
         vm.expectRevert();
         heartbeat.setVotesNeeded(0);
     }
 
     // Set the amount of votes greater than the amount of guardians
     function testVotesMoreThanGuardians() public {
-        setupThreeGuardians();
         vm.expectRevert();
         // 3 guardians so we cant have 4 votes!
         heartbeat.setVotesNeeded(4);
@@ -222,7 +233,6 @@ contract HeartbeatTest is Test {
 
     // A stranger should not be able to set the amount of votes
     function testStrangerSetVotes() public {
-        setupThreeGuardians();
         address strangerAddress = makeAddr("stranger");
 
         vm.expectRevert();
@@ -233,7 +243,6 @@ contract HeartbeatTest is Test {
 
     // Removing too many guardians would leave to few
     function testRemovingTooMany() public {
-        setupThreeGuardians();
         heartbeat.setVotesNeeded(2);
 
         heartbeat.removeGuardian(ginko);
@@ -244,7 +253,6 @@ contract HeartbeatTest is Test {
 
     // Voting before the Expiry can't happen
     function testVotingBeforeExpiry() public {
-        setupThreeGuardians();
         heartbeat.setVotesNeeded(2);
         skip(61);
 
@@ -255,7 +263,6 @@ contract HeartbeatTest is Test {
 
     // A non-guardian cannot vote (including an owner)
     function testNonGuardianVote() public {
-        setupThreeGuardians();
         skip(91);
         vm.expectRevert();
         heartbeat.confirmRelease();
@@ -263,7 +270,6 @@ contract HeartbeatTest is Test {
 
     // The same guardian cannot vote twice
     function testGuardianVoteTwice() public {
-        setupThreeGuardians();
         heartbeat.setVotesNeeded(2);
         skip(91);
 
@@ -277,7 +283,6 @@ contract HeartbeatTest is Test {
 
     // One vote out of two needed doesn't release the switch
     function testOneVoteNotEnough() public {
-        setupThreeGuardians();
         heartbeat.setVotesNeeded(2);
         skip(91);
 
@@ -288,7 +293,7 @@ contract HeartbeatTest is Test {
         assertEq(heartbeat.voteCount(), 1);
 
         // Ginko's card records the vote
-        (bool hasVoted,) = heartbeat.guardians(ginko);
+        (bool hasVoted, ) = heartbeat.guardians(ginko);
         assertTrue(hasVoted);
     }
 
@@ -302,13 +307,27 @@ contract HeartbeatTest is Test {
     // An empty fingerprint is rejected
     function testEmptyFingerprintReverts() public {
         vm.expectRevert();
-        new Heartbeat(60 seconds, 30 seconds, bytes32(0), ipfsLink);
+        new Heartbeat(
+            60 seconds,
+            30 seconds,
+            bytes32(0),
+            ipfsLink,
+            1,
+            threeGuardians()
+        );
     }
 
     // An empty IPFS link is rejected
     function testEmptyLinkReverts() public {
         vm.expectRevert();
-        new Heartbeat(60 seconds, 30 seconds, fingerprint, "");
+        new Heartbeat(
+            60 seconds,
+            30 seconds,
+            fingerprint,
+            "",
+            1,
+            threeGuardians()
+        );
     }
 
     // ---------- Events ----------
@@ -323,16 +342,15 @@ contract HeartbeatTest is Test {
 
     // Adding a guardian announces who was added
     function testEventGuardianAdded() public {
-        // Not using the helper, since it would add Ginko before we start watching
-        ginko = makeAddr("ginko");
+        // A fresh address: the setUp guardians were added before we started watching
+        address bobAddr = makeAddr("bob");
         vm.expectEmit();
-        emit Heartbeat.GuardianAdded(ginko);
-        heartbeat.addGuardian(ginko);
+        emit Heartbeat.GuardianAdded(bobAddr);
+        heartbeat.addGuardian(bobAddr);
     }
 
     // A vote announces who voted and the new total
     function testEventVoteCast() public {
-        setupThreeGuardians();
         heartbeat.setVotesNeeded(2);
         skip(91); // past the deadline, so voting is open
 
@@ -345,7 +363,6 @@ contract HeartbeatTest is Test {
 
     // The deciding vote announces the release
     function testEventReleased() public {
-        setupThreeGuardians();
         heartbeat.setVotesNeeded(2);
         skip(91);
 
@@ -363,14 +380,166 @@ contract HeartbeatTest is Test {
     }
 
     function testEventGuaridanRemoved() public {
-        setupThreeGuardians();
         emit Heartbeat.GuardianRemoved(asta);
         heartbeat.removeGuardian(asta);
     }
 
     function testEventVotesNeededSet() public {
-        setupThreeGuardians();
         emit Heartbeat.VotesNeededSet(2);
         heartbeat.setVotesNeeded(2);
+    }
+
+    // ---------- Constructor: guardians and threshold ----------
+
+    // The whole point of moving guardians into the constructor: a guardian
+    // created there must be able to vote. This fails if any of the four
+    // storage writes is missed, which a count assertion alone would not catch.
+    function testConstructorGuardianCanVote() public {
+        skip(91); // past interval + grace, so voting is open
+
+        vm.prank(ginko);
+        heartbeat.confirmRelease();
+
+        assertEq(heartbeat.released(), true);
+    }
+
+    // Guardians land in the list exactly once, in order, with matching indexes.
+    function testConstructorStoresEachGuardianOnce() public view {
+        assertEq(heartbeat.getGuardianCount(), 3);
+
+        assertEq(heartbeat.guardianList(0), ginko);
+        assertEq(heartbeat.guardianList(1), asta);
+        assertEq(heartbeat.guardianList(2), bob);
+
+        assertEq(heartbeat.guardianIndex(ginko), 0);
+        assertEq(heartbeat.guardianIndex(asta), 1);
+        assertEq(heartbeat.guardianIndex(bob), 2);
+
+        (, uint256 whenAdded) = heartbeat.guardians(ginko);
+        assertEq(whenAdded, block.timestamp);
+    }
+
+    // The same address twice in the list is rejected
+    function testConstructorRejectsDuplicateGuardian() public {
+        address[] memory gs = new address[](2);
+        gs[0] = ginko;
+        gs[1] = ginko;
+
+        vm.expectRevert(bytes("Already a guardian!"));
+        new Heartbeat(60 seconds, 30 seconds, fingerprint, ipfsLink, 1, gs);
+    }
+
+    // The zero address would be a guardian nobody controls
+    function testConstructorRejectsZeroAddressGuardian() public {
+        address[] memory gs = new address[](2);
+        gs[0] = ginko;
+        gs[1] = address(0);
+
+        vm.expectRevert(bytes("Guardian cannot be the zero address!"));
+        new Heartbeat(60 seconds, 30 seconds, fingerprint, ipfsLink, 1, gs);
+    }
+
+    // The owner cannot guard their own switch
+    function testConstructorRejectsOwnerAsGuardian() public {
+        vm.expectRevert(bytes("Guardian cannot be owner!"));
+        new Heartbeat(
+            60 seconds,
+            30 seconds,
+            fingerprint,
+            ipfsLink,
+            1,
+            oneGuardian(address(this))
+        );
+    }
+
+    // A threshold of zero would brick the switch on expiry: nobody could
+    // ever release it, and the owner is locked out.
+    function testConstructorRejectsZeroVotesNeeded() public {
+        vm.expectRevert(bytes("Set votesNeeded greater than 0!"));
+        new Heartbeat(
+            60 seconds,
+            30 seconds,
+            fingerprint,
+            ipfsLink,
+            0,
+            threeGuardians()
+        );
+    }
+
+    // A threshold above the guardian count could never be reached
+    function testConstructorRejectsVotesNeededAboveCount() public {
+        vm.expectRevert(
+            bytes("votesNeeded cannot be greater than guardian count!")
+        );
+        new Heartbeat(
+            60 seconds,
+            30 seconds,
+            fingerprint,
+            ipfsLink,
+            4,
+            threeGuardians()
+        );
+    }
+
+    // No guardians at all is unconstructable: votesNeeded must be at least 1
+    // and at most the count, which no value satisfies when the count is zero.
+    function testConstructorRejectsNoGuardians() public {
+        address[] memory none = new address[](0);
+
+        vm.expectRevert(bytes("Set votesNeeded greater than 0!"));
+        new Heartbeat(60 seconds, 30 seconds, fingerprint, ipfsLink, 0, none);
+
+        vm.expectRevert(
+            bytes("votesNeeded cannot be greater than guardian count!")
+        );
+        new Heartbeat(60 seconds, 30 seconds, fingerprint, ipfsLink, 1, none);
+    }
+
+    // The bound makes an oversized list fail clearly rather than run out of gas
+    function testConstructorRejectsTooManyGuardians() public {
+        address[] memory many = new address[](51);
+        for (uint256 i = 0; i < 51; ++i) {
+            many[i] = address(uint160(i + 2)); // never 0, never the owner
+        }
+
+        vm.expectRevert(bytes("Guardian count limited to 50."));
+        new Heartbeat(60 seconds, 30 seconds, fingerprint, ipfsLink, 1, many);
+    }
+
+    // Exactly at the bound is still allowed
+    function testConstructorAcceptsFiftyGuardians() public {
+        address[] memory many = new address[](50);
+        for (uint256 i = 0; i < 50; ++i) {
+            many[i] = address(uint160(i + 2));
+        }
+
+        Heartbeat big = new Heartbeat(
+            60 seconds,
+            30 seconds,
+            fingerprint,
+            ipfsLink,
+            25,
+            many
+        );
+        assertEq(big.getGuardianCount(), 50);
+        assertEq(big.votesNeeded(), 25);
+    }
+
+    // The Activity timeline is built from logs, so the constructor has to
+    // announce what it did.
+    function testConstructorEmitsEvents() public {
+        vm.expectEmit();
+        emit Heartbeat.GuardianAdded(ginko);
+        vm.expectEmit();
+        emit Heartbeat.VotesNeededSet(1);
+
+        new Heartbeat(
+            60 seconds,
+            30 seconds,
+            fingerprint,
+            ipfsLink,
+            1,
+            oneGuardian(ginko)
+        );
     }
 }
