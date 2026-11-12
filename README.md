@@ -261,6 +261,15 @@ The ABI is generated from the Foundry build, never hand-written.
 
 ## Future improvements
 
+**Cheaper storage.** A guardian currently costs ~94,000 gas to register,
+because each one writes to four places: the list, their record, a membership
+flag, and an index. Two savings are available. `Guardian`'s `bool hasVoted` and
+`uint256 whenAdded` occupy two storage slots; a narrower timestamp would pack
+them into one. And `isGuardian` is redundant — membership could be derived from
+`whenAdded != 0` instead of a fourth mapping. Each is worth roughly 20,000 gas
+per guardian, but both touch storage layout in a contract that is currently
+correct and fully covered, so neither is a change to make casually.
+
 **Timelock encryption.** Guardians currently hold their shares from day one, so
 enough of them could collude early. Schemes like
 [drand's timelock](https://drand.love/docs/timelock-encryption/) release a

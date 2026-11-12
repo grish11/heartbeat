@@ -7,7 +7,36 @@ items below make the project better, not merely finished.
 
 ---
 
-## 1. Custom domain
+## 1. Turn on the Solidity optimizer
+
+One line in `contracts/foundry.toml`. It is currently off, so every deploy
+carries unoptimized bytecode.
+
+Measured on anvil, creating a 2-of-3 switch:
+
+| Config | Deploy | Check-in |
+|---|---|---|
+| No optimizer (current) | 2,128,920 | 27,308 |
+| `optimizer_runs = 200` | 1,278,287 | 29,720 |
+| `optimizer_runs = 10000` | 1,496,446 | 26,886 |
+
+`runs` tells the compiler how often each function is expected to run: low
+favours deployment size, high favours execution. A switch is deployed once and
+checked in for years, so **10000 is the better fit** — 30% off the deploy and a
+slightly cheaper check-in, rather than 40% off the deploy at the cost of making
+the recurring call worse.
+
+- [ ] Add `optimizer = true` and `optimizer_runs = 10000` to `foundry.toml`.
+- [ ] Re-run `forge test` — behaviour should be identical.
+- [ ] Re-run `npm run sync-abi`; the bytecode in `lib/heartbeat.ts` changes.
+- [ ] Update the gas table in the README.
+
+No contract changes, so nothing to re-audit. This is the whole of the gas work
+worth doing before the deadline.
+
+---
+
+## 2. Custom domain
 
 **Why.** The first thing a judge currently sees is MetaMask warning *"signs of
 phishing or wallet-draining activity"*. It is a false positive — new domain,
@@ -24,7 +53,7 @@ Highest impact per minute of work on this list.
 
 ---
 
-## 2. Trim the demo video
+## 3. Trim the demo video
 
 Currently **4m55s**. Judges watching many submissions rarely finish a five
 minute video.
@@ -37,7 +66,7 @@ The setup explanation belongs in the README, which already has it.
 
 ---
 
-## 3. Per-guardian invite links
+## 4. Per-guardian invite links
 
 Copying three addresses by hand is the clumsiest part of setup.
 
