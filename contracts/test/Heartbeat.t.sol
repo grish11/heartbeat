@@ -30,14 +30,7 @@ contract HeartbeatTest is Test {
         asta = makeAddr("asta");
         bob = makeAddr("bob");
 
-        heartbeat = new Heartbeat(
-            60 seconds,
-            30 seconds,
-            fingerprint,
-            ipfsLink,
-            1,
-            threeGuardians()
-        );
+        heartbeat = new Heartbeat(60 seconds, 30 seconds, fingerprint, ipfsLink, 1, threeGuardians());
     }
 
     // The standard guardian set, in list order.
@@ -88,11 +81,13 @@ contract HeartbeatTest is Test {
 
     // The owner can add a guardian
     function testOwnerCanAddGuardian() public {
-        address bobAddr = makeAddr("bob"); // Bob :3
+        // Not "bob": makeAddr derives the address from the label, so
+        // makeAddr("bob") is the guardian setUp already registered.
+        address newcomer = makeAddr("newcomer");
 
-        heartbeat.addGuardian(bobAddr);
+        heartbeat.addGuardian(newcomer);
 
-        assertTrue(heartbeat.isGuardian(bobAddr));
+        assertTrue(heartbeat.isGuardian(newcomer));
         // setUp already seeded three, so this is the fourth.
         assertEq(heartbeat.getGuardianCount(), 4);
     }
@@ -293,7 +288,7 @@ contract HeartbeatTest is Test {
         assertEq(heartbeat.voteCount(), 1);
 
         // Ginko's card records the vote
-        (bool hasVoted, ) = heartbeat.guardians(ginko);
+        (bool hasVoted,) = heartbeat.guardians(ginko);
         assertTrue(hasVoted);
     }
 
@@ -307,27 +302,13 @@ contract HeartbeatTest is Test {
     // An empty fingerprint is rejected
     function testEmptyFingerprintReverts() public {
         vm.expectRevert();
-        new Heartbeat(
-            60 seconds,
-            30 seconds,
-            bytes32(0),
-            ipfsLink,
-            1,
-            threeGuardians()
-        );
+        new Heartbeat(60 seconds, 30 seconds, bytes32(0), ipfsLink, 1, threeGuardians());
     }
 
     // An empty IPFS link is rejected
     function testEmptyLinkReverts() public {
         vm.expectRevert();
-        new Heartbeat(
-            60 seconds,
-            30 seconds,
-            fingerprint,
-            "",
-            1,
-            threeGuardians()
-        );
+        new Heartbeat(60 seconds, 30 seconds, fingerprint, "", 1, threeGuardians());
     }
 
     // ---------- Events ----------
@@ -342,11 +323,12 @@ contract HeartbeatTest is Test {
 
     // Adding a guardian announces who was added
     function testEventGuardianAdded() public {
-        // A fresh address: the setUp guardians were added before we started watching
-        address bobAddr = makeAddr("bob");
+        // A fresh label: the setUp guardians were added before we started
+        // watching, and makeAddr("bob") would be one of them.
+        address newcomer = makeAddr("newcomer");
         vm.expectEmit();
-        emit Heartbeat.GuardianAdded(bobAddr);
-        heartbeat.addGuardian(bobAddr);
+        emit Heartbeat.GuardianAdded(newcomer);
+        heartbeat.addGuardian(newcomer);
     }
 
     // A vote announces who voted and the new total
@@ -442,43 +424,20 @@ contract HeartbeatTest is Test {
     // The owner cannot guard their own switch
     function testConstructorRejectsOwnerAsGuardian() public {
         vm.expectRevert(bytes("Guardian cannot be owner!"));
-        new Heartbeat(
-            60 seconds,
-            30 seconds,
-            fingerprint,
-            ipfsLink,
-            1,
-            oneGuardian(address(this))
-        );
+        new Heartbeat(60 seconds, 30 seconds, fingerprint, ipfsLink, 1, oneGuardian(address(this)));
     }
 
     // A threshold of zero would brick the switch on expiry: nobody could
     // ever release it, and the owner is locked out.
     function testConstructorRejectsZeroVotesNeeded() public {
         vm.expectRevert(bytes("Set votesNeeded greater than 0!"));
-        new Heartbeat(
-            60 seconds,
-            30 seconds,
-            fingerprint,
-            ipfsLink,
-            0,
-            threeGuardians()
-        );
+        new Heartbeat(60 seconds, 30 seconds, fingerprint, ipfsLink, 0, threeGuardians());
     }
 
     // A threshold above the guardian count could never be reached
     function testConstructorRejectsVotesNeededAboveCount() public {
-        vm.expectRevert(
-            bytes("votesNeeded cannot be greater than guardian count!")
-        );
-        new Heartbeat(
-            60 seconds,
-            30 seconds,
-            fingerprint,
-            ipfsLink,
-            4,
-            threeGuardians()
-        );
+        vm.expectRevert(bytes("votesNeeded cannot be greater than guardian count!"));
+        new Heartbeat(60 seconds, 30 seconds, fingerprint, ipfsLink, 4, threeGuardians());
     }
 
     // No guardians at all is unconstructable: votesNeeded must be at least 1
@@ -489,9 +448,7 @@ contract HeartbeatTest is Test {
         vm.expectRevert(bytes("Set votesNeeded greater than 0!"));
         new Heartbeat(60 seconds, 30 seconds, fingerprint, ipfsLink, 0, none);
 
-        vm.expectRevert(
-            bytes("votesNeeded cannot be greater than guardian count!")
-        );
+        vm.expectRevert(bytes("votesNeeded cannot be greater than guardian count!"));
         new Heartbeat(60 seconds, 30 seconds, fingerprint, ipfsLink, 1, none);
     }
 
@@ -513,14 +470,7 @@ contract HeartbeatTest is Test {
             many[i] = address(uint160(i + 2));
         }
 
-        Heartbeat big = new Heartbeat(
-            60 seconds,
-            30 seconds,
-            fingerprint,
-            ipfsLink,
-            25,
-            many
-        );
+        Heartbeat big = new Heartbeat(60 seconds, 30 seconds, fingerprint, ipfsLink, 25, many);
         assertEq(big.getGuardianCount(), 50);
         assertEq(big.votesNeeded(), 25);
     }
@@ -533,13 +483,6 @@ contract HeartbeatTest is Test {
         vm.expectEmit();
         emit Heartbeat.VotesNeededSet(1);
 
-        new Heartbeat(
-            60 seconds,
-            30 seconds,
-            fingerprint,
-            ipfsLink,
-            1,
-            oneGuardian(ginko)
-        );
+        new Heartbeat(60 seconds, 30 seconds, fingerprint, ipfsLink, 1, oneGuardian(ginko));
     }
 }

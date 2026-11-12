@@ -67,6 +67,13 @@ or the shares. On-chain there is only a fingerprint and an IPFS address.
 Expiry is pure arithmetic — nobody has to trigger it:
 `block.timestamp > lastCheckIn + interval + gracePeriod`
 
+A switch cannot be created half-configured. Guardians and the vote threshold
+are constructor arguments, and `votesNeeded` must be at least 1 and at most the
+guardian count — so a deploy either produces a complete switch or reverts and
+leaves nothing behind. That matters because every owner function carries
+`notExpired`: a switch expiring with no guardians could never be checked in,
+reconfigured, or released by anyone.
+
 (Validators can nudge [`block.timestamp`][timestamp] by a few seconds. Irrelevant
 at minutes-to-days scales.)
 
@@ -122,10 +129,6 @@ better said plainly than discovered by a user.
   transactions — structurally what a drainer does. Connecting still works. A
   custom domain would avoid most of it, and it is a real adoption problem for
   honest dapps.
-- **A half-configured switch bricks.** Every owner function is `notExpired`, and
-  releasing needs `votesNeeded > 0`. A switch that expires with no guardians can
-  never be used again by anyone. The UI warns; moving guardians into the
-  constructor would make it impossible.
 
 ---
 
@@ -135,10 +138,13 @@ Measured on the real contract:
 
 | Action | Gas | How often |
 |---|---|---|
-| Deploy a switch | 1,786,622 | once |
-| Add a guardian | 121,846 | per guardian |
-| Set vote threshold | 51,932 | once |
+| Create a 2-of-3 switch | 2,128,920 | once, in a single transaction |
+| Add a guardian later | 121,846 | optional |
 | **Check in** | **27,308** | every time |
+
+Creation covers the contract, its guardians and the threshold in one
+transaction — about 94,000 gas per guardian, and 75,000 less than doing it in
+five separate transactions.
 
 The expensive part happens once. Staying alive costs ~27k gas — pennies on
 mainnet, nothing on an L2.
@@ -159,13 +165,13 @@ anvil                # terminal 1: local chain
 
 ```bash
 cd contracts         # terminal 2
-forge test           # 34 tests
+forge test           # 45 tests
 ```
 
 ```bash
 cd frontend          # terminal 3
 npm install
-npm test             # 65 tests
+npm test             # 76 tests
 npm run dev          # localhost:3000
 ```
 
@@ -200,7 +206,7 @@ activity data if transactions start failing.
 
 ## Tests
 
-**34 Foundry tests** on the contract, **65 vitest tests** on the frontend —
+**45 Foundry tests** on the contract, **76 vitest tests** on the frontend —
 covering the state machine, fingerprinting, AES round-trips, tamper and wrong-key
 rejection, Shamir thresholds, gateway handling, and the full owner → guardian
 pipeline including *"a substituted file fails verification."*
@@ -216,9 +222,9 @@ cd frontend  && npm test
 
 | | Coverage |
 |---|---|
-| Lines | **100%** (61/61) |
-| Statements | **100%** (55/55) |
-| Branches | **93.55%** (29/31) |
+| Lines | **100%** (77/77) |
+| Statements | **100%** (73/73) |
+| Branches | **95.35%** (41/43) |
 | Functions | **100%** (13/13) |
 
 Every line, statement and function of the contract is exercised. The two
@@ -233,7 +239,7 @@ is why a whole-project total would read lower.
 ```
 contracts/
   src/Heartbeat.sol         the contract — 202 lines, hand-written
-  test/Heartbeat.t.sol      34 tests
+  test/Heartbeat.t.sol      45 tests
 frontend/
   app/
     page.tsx                landing
@@ -246,7 +252,7 @@ frontend/
     shamir.ts               key splitting
     heartbeatState.ts       alive / grace / expired / released
     useHeartbeat.ts         contract reads and writes
-    __tests__/              65 tests
+    __tests__/              76 tests
 ```
 
 The ABI is generated from the Foundry build, never hand-written.
@@ -254,12 +260,6 @@ The ABI is generated from the Foundry build, never hand-written.
 ---
 
 ## Future improvements
-
-**Make a broken switch impossible.** Guardians and the vote threshold are set in
-separate transactions after deployment, so a switch can briefly exist
-half-configured — and if it expires that way it is bricked forever. Moving both
-into the constructor would make that state unrepresentable, cost one wallet
-prompt instead of five, and save ~84k gas.
 
 **Timelock encryption.** Guardians currently hold their shares from day one, so
 enough of them could collude early. Schemes like

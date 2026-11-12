@@ -10,7 +10,6 @@ import {
   useAccount,
   useDeployContract,
   usePublicClient,
-  useWriteContract,
 } from "wagmi";
 
 import { TestnetFunds } from "@/components/TestnetFunds";
@@ -30,7 +29,6 @@ type Stage =
   | "uploading"
   | "splitting"
   | "deploying"
-  | "configuring"
   | "done";
 
 export default function SetupPage() {
@@ -51,12 +49,10 @@ export default function SetupPage() {
   const [stubbed, setStubbed] = useState(false);
 
   const { deployContractAsync } = useDeployContract();
-  const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient();
   const [deployedAddress, setDeployedAddress] = useState<`0x${string}` | null>(
     null,
   );
-  const [progress, setProgress] = useState("");
 
   const cleanGuardians = guardians.map((g) => g.trim()).filter(Boolean);
   const guardiansValid =
@@ -110,13 +106,21 @@ export default function SetupPage() {
       );
       setStubbed(wasStubbed);
 
-      // 3. Deploy first: the shares are tagged with the switch address, so it
-      //    has to exist before they can be generated.
+      // 3. One transaction: guardians and the threshold are constructor
+      //    arguments, so the contract is either fully configured or never
+      //    created. There is no window in which a half-built switch exists.
       setStage("deploying");
       const txHash = await deployContractAsync({
         abi: heartbeatAbi,
         bytecode: heartbeatBytecode,
-        args: [BigInt(intervalSeconds), BigInt(graceSeconds), fingerprint, cid],
+        args: [
+          BigInt(intervalSeconds),
+          BigInt(graceSeconds),
+          fingerprint,
+          cid,
+          BigInt(thresholdNumber),
+          cleanGuardians as `0x${string}`[],
+        ],
       });
       const receipt = await publicClient.waitForTransactionReceipt({
         hash: txHash,
@@ -128,6 +132,7 @@ export default function SetupPage() {
 
       // 4. Split the key so no single guardian can open it alone, and tag each
       //    share with its switch and threshold so guardians are never guessing.
+      //    This happens after the deploy because a share carries its address.
       setStage("splitting");
       const keyShares = (
         await splitKey(keyHex, cleanGuardians.length, thresholdNumber)
@@ -141,34 +146,6 @@ export default function SetupPage() {
         }),
       );
 
-      // 5. Guardians are not constructor arguments, so each one is its own
-      //    transaction, and the vote threshold is another. Every owner action
-      //    carries `notExpired`, so a switch left unconfigured until it expires
-      //    can never be checked in, configured, or released — do it now.
-      setStage("configuring");
-      for (const [index, guardian] of cleanGuardians.entries()) {
-        setProgress(
-          `Adding guardian ${index + 1} of ${cleanGuardians.length}…`,
-        );
-        const added = await writeContractAsync({
-          address: switchAddress,
-          abi: heartbeatAbi,
-          functionName: "addGuardian",
-          args: [guardian as `0x${string}`],
-        });
-        await publicClient.waitForTransactionReceipt({ hash: added });
-      }
-
-      setProgress("Setting the vote threshold…");
-      const voted = await writeContractAsync({
-        address: switchAddress,
-        abi: heartbeatAbi,
-        functionName: "setVotesNeeded",
-        args: [BigInt(thresholdNumber)],
-      });
-      await publicClient.waitForTransactionReceipt({ hash: voted });
-
-      setProgress("");
       setShares(keyShares);
       setStage("done");
     } catch (caught) {
@@ -387,7 +364,6 @@ export default function SetupPage() {
             {stage === "uploading" && "Publishing the encrypted file…"}
             {stage === "splitting" && "Splitting the key for your guardians…"}
             {stage === "deploying" && "Confirm the deployment in your wallet…"}
-            {stage === "configuring" && progress}
           </Note>
         )}
         {error && <Note tone="error">{error}</Note>}

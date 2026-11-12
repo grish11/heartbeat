@@ -8,7 +8,6 @@ import { ConnectPrompt } from "@/components/ConnectPrompt";
 import { GuardianList } from "@/components/GuardianList";
 import { GuardianVote } from "@/components/GuardianVote";
 import { OwnerPanel } from "@/components/OwnerPanel";
-import { SetupWarning } from "@/components/SetupWarning";
 import { StatusPanel } from "@/components/StatusPanel";
 import { UnlockPanel } from "@/components/UnlockPanel";
 import { Tabs } from "@/components/Tabs";
@@ -35,7 +34,6 @@ export default function SwitchPage({
   return (
     <SwitchProvider address={address}>
       <ConnectPrompt />
-      <SetupWarning />
       <Tabs
         tabs={[
           {

@@ -7,41 +7,7 @@ items below make the project better, not merely finished.
 
 ---
 
-## 1. One-transaction setup — contract change, hand-written
-
-**Why this is the most valuable item.** Creating a switch currently costs
-1 deploy + 1 tx per guardian + 1 for `setVotesNeeded` — five wallet prompts for
-three guardians. Worse, a switch can exist **half-configured**, and if it
-expires in that state it is bricked forever: every owner function is
-`notExpired`, and `confirmRelease` needs `votesNeeded > 0`, so nobody can check
-in, configure, or release it. Ever.
-
-Moving guardians and the threshold into the constructor makes that state
-**impossible to represent**, rather than something the UI warns about.
-
-**What to write** (this is your Solidity — no AI):
-
-- [ ] Add two constructor parameters: an array of guardian addresses and
-      `votesNeeded`.
-- [ ] Loop the array, doing what `addGuardian` does today: reject duplicates,
-      reject the owner, fill `guardianIndex`/`guardianList`/`guardians`/
-      `isGuardian`, emit `GuardianAdded`.
-- [ ] Apply the same validation `setVotesNeeded` does — greater than zero, not
-      more than the guardian count — then store it and emit `VotesNeededSet`.
-- [ ] Update `contracts/test/Heartbeat.t.sol`; every test that calls the
-      constructor needs the new arguments.
-- [ ] Decide whether `addGuardian`/`removeGuardian`/`setVotesNeeded` stay. Keeping
-      them allows changing guardians later; removing them shrinks the contract.
-
-**Then I will:** re-run `npm run sync-abi`, collapse the setup flow to a single
-deploy, delete `SetupWarning` (the case it warns about stops existing), and
-update the README's gas table and obstacles list.
-
-Saves ~84k gas, about 4%. The gas is not the point; the impossible-bad-state is.
-
----
-
-## 2. Custom domain
+## 1. Custom domain
 
 **Why.** The first thing a judge currently sees is MetaMask warning *"signs of
 phishing or wallet-draining activity"*. It is a false positive — new domain,
@@ -58,7 +24,7 @@ Highest impact per minute of work on this list.
 
 ---
 
-## 3. Trim the demo video
+## 2. Trim the demo video
 
 Currently **4m55s**. Judges watching many submissions rarely finish a five
 minute video.
@@ -71,7 +37,7 @@ The setup explanation belongs in the README, which already has it.
 
 ---
 
-## 4. Per-guardian invite links
+## 3. Per-guardian invite links
 
 Copying three addresses by hand is the clumsiest part of setup.
 
@@ -93,6 +59,12 @@ Copying three addresses by hand is the clumsiest part of setup.
 - README with sources, demo video, public repo
 - Live on Sepolia at <https://heartbeat-indol.vercel.app>
 - 200-word write-up
+- **One-transaction setup.** Guardians and votesNeeded are constructor
+  arguments, validated before the contract exists, so a deploy produces a
+  complete switch or nothing at all. Zero guardians is unconstructable, which
+  removes the bricking case entirely. Guardian count capped at 50. Creating a
+  2-of-3 switch is 2,128,920 gas in one transaction, 75k less than the old five.
+  Contract tests 34 -> 45, line coverage 100% (77/77).
 - **Multi-chain.** Sepolia, Base Sepolia, Base and Ethereum, all four verified
   live through Infura from both origins. Testnets are listed first so a
   real-money chain is always a deliberate choice. `NetworkBadge` labels the
